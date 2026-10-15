@@ -1,0 +1,35 @@
+{
+  "domain": "science_tech",
+  "domain_zh": "理科与信息学科群（计算机 / 理学）",
+  "school_college": "计算机与软件学院、理学院",
+  "priority": 2,
+  "subfields": [
+    {
+      "code": "computer",
+      "name": "计算机科学与技术 / 软件工程",
+      "journals": [
+        { "name": "IEEE Transactions on Software Engineering", "publisher_zh": "IEEE", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "ieeexplore.ieee.org", "note": "" },
+        { "name": "IEEE Transactions on Pattern Analysis and Machine Intelligence", "publisher_zh": "IEEE", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "ieeexplore.ieee.org", "note": "" },
+        { "name": "ACM Computing Surveys", "publisher_zh": "美国计算机学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "dl.acm.org", "note": "" },
+        { "name": "Journal of the ACM", "publisher_zh": "美国计算机学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "dl.acm.org", "note": "" },
+        { "name": "IEEE Access", "publisher_zh": "IEEE", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "ieeexplore.ieee.org", "note": "OA，计算机方向可全文采集" },
+        { "name": "PeerJ Computer Science", "publisher_zh": "PeerJ", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "peerj.com", "note": "OA" },
+        { "name": "Journal of Software: Evolution and Process", "publisher_zh": "威利", "tier": "mid", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "onlinelibrary.wiley.com", "note": "" },
+        { "name": "Scientific Reports", "publisher_zh": "自然出版集团", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "nature.com/articles/s41598-...", "note": "综合 OA，全学科通用" }
+      ]
+    },
+    {
+      "code": "science",
+      "name": "理学（数学 / 物理 / 化学）",
+      "journals": [
+        { "name": "Physical Review Letters", "publisher_zh": "美国物理学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "journals.aps.org", "note": "" },
+        { "name": "Nature Physics", "publisher_zh": "自然出版集团", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "nature.com", "note": "" },
+        { "name": "Annals of Mathematics", "publisher_zh": "普林斯顿大学出版社", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "annals.math.princeton.edu", "note": "数学顶尖刊" },
+        { "name": "Physical Review Research", "publisher_zh": "美国物理学会", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "journals.aps.org/prresearch", "note": "OA" },
+        { "name": "New Journal of Physics", "publisher_zh": "英国物理学会", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "iopscience.iop.org", "note": "OA" },
+        { "name": "Symmetry", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/symmetry", "note": "OA，数学物理方向" },
+        { "name": "Applied Mathematics and Mechanics", "publisher_zh": "上海大学 / 施普林格", "tier": "mid", "open_access": false, "collect_scope": "metadata_only", "site": "link.springer.com", "note": "" }
+      ]
+    }
+  ]
+}

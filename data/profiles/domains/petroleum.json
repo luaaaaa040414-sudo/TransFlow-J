@@ -1,0 +1,23 @@
+{
+  "domain": "petroleum",
+  "domain_zh": "石油与天然气工程",
+  "school_college": "石油与天然气工程学院",
+  "motivation": "教育部第五轮学科评估 A+，国家「双一流」建设学科",
+  "priority": 1,
+  "journals": [
+    { "name": "SPE Journal", "publisher_zh": "美国石油工程师学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "onepetro.org", "note": "石油工程领域最权威刊物" },
+    { "name": "SPE Reservoir Evaluation & Engineering", "publisher_zh": "美国石油工程师学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "onepetro.org", "note": "油藏工程方向顶级刊" },
+    { "name": "SPE Drilling & Completion", "publisher_zh": "美国石油工程师学会", "tier": "high", "open_access": false, "collect_scope": "abstract_only", "site": "onepetro.org", "note": "" },
+    { "name": "SPE Production & Operations", "publisher_zh": "美国石油工程师学会", "tier": "high", "open_access": false, "collect_scope": "abstract_only", "site": "onepetro.org", "note": "" },
+    { "name": "Journal of Petroleum Science and Engineering", "publisher_zh": "爱思唯尔", "tier": "top", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "需订阅，含少量开放文章" },
+    { "name": "Fuel", "publisher_zh": "爱思唯尔", "tier": "top", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "" },
+    { "name": "Energy and Fuels", "publisher_zh": "美国化学会", "tier": "high", "open_access": false, "collect_scope": "metadata_only", "site": "pubs.acs.org", "note": "" },
+    { "name": "Journal of Natural Gas Science and Engineering", "publisher_zh": "爱思唯尔", "tier": "mid", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "" },
+    { "name": "Petroleum Exploration and Development", "publisher_zh": "中国石油学会 / 科学出版社", "tier": "top", "open_access": true, "collect_scope": "fulltext", "site": "www.sciencedirect.com/journal/petroleum-exploration-and-development", "note": "《石油勘探与开发》英文版，OA 可全文采集" },
+    { "name": "Natural Gas Industry B", "publisher_zh": "石油工业出版社", "tier": "top", "open_access": true, "collect_scope": "fulltext", "site": "www.sciencedirect.com/journal/natural-gas-industry-b", "note": "《天然气工业》英文版，OA" },
+    { "name": "Petroleum Science", "publisher_zh": "中国石油大学 / 施普林格", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "link.springer.com/journal/12182", "note": "OA" },
+    { "name": "Energies", "publisher_zh": "MDPI", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/energies", "note": "能源工程综合」OA" },
+    { "name": "Processes", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/processes", "note": "油气加工过程 OA" },
+    { "name": "Geoenergy Science and Engineering", "publisher_zh": "爱思唯尔", "tier": "mid", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "" }
+  ]
+}

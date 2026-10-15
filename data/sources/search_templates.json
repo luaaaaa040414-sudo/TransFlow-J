@@ -1,0 +1,17 @@
+{
+  "$comment": "各信源【站内检索】URL 模板：点一下直接进入该权威网站并检索该词，不经过任何搜索引擎。{q} 替换为 URL 编码后的检索词；{base} 替换为站点根。采用精确 host 匹配（含显式子域），未配置的信源回退 default（该站首页）。",
+  "version": "2.1",
+  "updated": "2026-10-15",
+  "default": "{base}/",
+  "templates": {
+    "termonline.cn": "https://www.termonline.cn/search?k={q}",
+    "moe.gov.cn": "http://www.moe.gov.cn/was5/web/search?searchword={q}&channelid=254028&page=1",
+    "en.moe.gov.cn": "http://www.moe.gov.cn/was5/web/search?searchword={q}&channelid=254028&page=1",
+    "gov.cn": "https://search.english.www.gov.cn/en/search.shtml?code=17dbe3acd9&dataTypeId=57&searchword={q}",
+    "english.www.gov.cn": "https://search.english.www.gov.cn/en/search.shtml?code=17dbe3acd9&dataTypeId=57&searchword={q}",
+    "cas.cn": "https://www.cas.cn/search/index.shtml?iptSword={q}",
+    "samr.gov.cn": "https://std.samr.gov.cn/gb/gbQuery",
+    "std.samr.gov.cn": "https://std.samr.gov.cn/gb/gbQuery",
+    "cnki.net": "https://kns.cnki.net/kns8s/"
+  }
+}

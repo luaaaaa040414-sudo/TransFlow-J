@@ -1,0 +1,165 @@
+{
+  "$comment": "术语库：已收录术语的候选译文与其信源证据。译前准备阶段，命中本库的术语直接给出分级证据与裁决；未命中的走「分级查证方案」。url 为权威站点入口，供人工复核。",
+  "version": "1.0",
+  "updated": "2026-10-15",
+  "terms": [
+    {
+      "term": "西南石油大学",
+      "domain": "petroleum",
+      "translations": [
+        { "text": "Southwest Petroleum University", "tier": "tier1", "source_id": "T1-04", "source_name": "西南石油大学官网", "url": "https://www.swpu.edu.cn/", "snippet": "本校官方英文校名，校徽与英文官网一致" }
+      ]
+    },
+    {
+      "term": "水力压裂",
+      "domain": "petroleum",
+      "translations": [
+        { "text": "hydraulic fracturing", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "全国科学技术名词审定委员会审定术语" },
+        { "text": "hydraulic fracturing", "tier": "tier1", "source_id": "T1-08", "source_name": "中石油 / 中石化 / 中海油", "url": "https://www.cnpc.com.cn/", "snippet": "央企官方技术文献标准用语" }
+      ]
+    },
+    {
+      "term": "页岩气",
+      "domain": "petroleum",
+      "translations": [
+        { "text": "shale gas", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "国家审定术语" },
+        { "text": "shale gas", "tier": "tier1", "source_id": "T1-01", "source_name": "中国政府网", "url": "https://english.www.gov.cn/", "snippet": "政府英文发布用语" }
+      ]
+    },
+    {
+      "term": "水平井",
+      "domain": "petroleum",
+      "translations": [
+        { "text": "horizontal well", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "国家审定术语" }
+      ]
+    },
+    {
+      "term": "提高采收率",
+      "domain": "petroleum",
+      "translations": [
+        { "text": "enhanced oil recovery", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "常缩写为 EOR" },
+        { "text": "enhanced oil recovery", "tier": "tier1", "source_id": "T1-08", "source_name": "中石油 / 中石化 / 中海油", "url": "https://www.cnpc.com.cn/", "snippet": "央企技术文献用语" }
+      ]
+    },
+    {
+      "term": "天然气水合物",
+      "domain": "petroleum",
+      "translations": [
+        { "text": "natural gas hydrate", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "俗称「可燃冰」" }
+      ]
+    },
+    {
+      "term": "储层",
+      "domain": "petroleum",
+      "translations": [
+        { "text": "reservoir", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "国家审定术语" }
+      ]
+    },
+    {
+      "term": "钻井",
+      "domain": "petroleum",
+      "translations": [
+        { "text": "drilling", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "国家审定术语" }
+      ]
+    },
+    {
+      "term": "双一流",
+      "domain": "humanities",
+      "translations": [
+        { "text": "Double First-Class", "tier": "tier1", "source_id": "T1-02", "source_name": "教育部英文官网", "url": "http://en.moe.gov.cn/", "snippet": "教育部英文发布固定译法" }
+      ]
+    },
+    {
+      "term": "一带一路",
+      "domain": "humanities",
+      "translations": [
+        { "text": "Belt and Road Initiative", "tier": "tier1", "source_id": "T1-01", "source_name": "中国政府网", "url": "https://english.www.gov.cn/", "snippet": "官方固定译法，缩写 BRI" },
+        { "text": "Belt and Road Initiative", "tier": "tier1", "source_id": "T1-09", "source_name": "国新办丝路网", "url": "https://www.imsilkroad.com/", "snippet": "国家机构发布用语" }
+      ]
+    },
+    {
+      "term": "碳中和",
+      "domain": "humanities",
+      "translations": [
+        { "text": "carbon neutrality", "tier": "tier1", "source_id": "T1-01", "source_name": "中国政府网", "url": "https://english.www.gov.cn/", "snippet": "官方气候承诺固定译法" }
+      ]
+    },
+    {
+      "term": "碳达峰",
+      "domain": "humanities",
+      "translations": [
+        { "text": "carbon peaking", "tier": "tier1", "source_id": "T1-01", "source_name": "中国政府网", "url": "https://english.www.gov.cn/", "snippet": "官方气候承诺固定译法" }
+      ]
+    },
+    {
+      "term": "地震勘探",
+      "domain": "geoscience",
+      "translations": [
+        { "text": "seismic exploration", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "国家审定术语" }
+      ]
+    },
+    {
+      "term": "沉积盆地",
+      "domain": "geoscience",
+      "translations": [
+        { "text": "sedimentary basin", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "国家审定术语" }
+      ]
+    },
+    {
+      "term": "地球化学",
+      "domain": "geoscience",
+      "translations": [
+        { "text": "geochemistry", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "国家审定术语" }
+      ]
+    },
+    {
+      "term": "锂电池",
+      "domain": "engineering",
+      "translations": [
+        { "text": "lithium battery", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "锂离子电池 lithium-ion battery 亦常用" }
+      ]
+    },
+    {
+      "term": "燃料电池",
+      "domain": "engineering",
+      "translations": [
+        { "text": "fuel cell", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "国家审定术语" }
+      ]
+    },
+    {
+      "term": "催化剂",
+      "domain": "engineering",
+      "translations": [
+        { "text": "catalyst", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "国家审定术语" }
+      ]
+    },
+    {
+      "term": "混凝土",
+      "domain": "engineering",
+      "translations": [
+        { "text": "concrete", "tier": "tier1", "source_id": "T1-05", "source_name": "国家标准全文公开系统", "url": "https://std.samr.gov.cn/", "snippet": "国家标准术语" }
+      ]
+    },
+    {
+      "term": "深度学习",
+      "domain": "science-tech",
+      "translations": [
+        { "text": "deep learning", "tier": "tier1", "source_id": "T1-06", "source_name": "全国术语在线", "url": "https://www.termonline.cn/", "snippet": "国家审定术语" }
+      ]
+    },
+    {
+      "term": "知识产权",
+      "domain": "humanities",
+      "translations": [
+        { "text": "intellectual property", "tier": "tier1", "source_id": "T1-01", "source_name": "中国政府网", "url": "https://english.www.gov.cn/", "snippet": "官方固定译法，缩写 IP" }
+      ]
+    },
+    {
+      "term": "供应链",
+      "domain": "humanities",
+      "translations": [
+        { "text": "supply chain", "tier": "tier2", "source_id": "T2-01", "source_name": "CNKI 中国知网", "url": "https://www.cnki.net/", "snippet": "学术文献通用译法（仅二级源，需交叉验证）" }
+      ]
+    }
+  ]
+}

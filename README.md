@@ -1,0 +1,90 @@
+# TransFlow-J 面向期刊风格的智能翻译流水线
+
+译前准备 → 精准翻译 → 异模型校对反思 → 定稿交付，四阶段串成流水线；期刊风格引擎作为**横向约束**同时注入翻译与校对环节，全过程可视化。
+
+```
+大作业/
+├─ frontend/    前端（Vue 3 + Vite）→ 用 HBuilderX 打开这个文件夹
+├─ backend/     后端（Java 8 + Spring Boot 2.7.18，Maven）→ 用 IDEA 打开这个文件夹
+├─ ml/          ML 工程（Python）→ 用 PyCharm 打开这个文件夹，运行 ml/app.py
+├─ data/
+│  ├─ sources/sources.json      信源三级分级体系（含黑名单）
+│  ├─ termbase/                 术语库：domain_keywords.json（领域判定）+ terms.json（已收录术语的分级证据）
+│  ├─ models/models.json        模型池：厂商 / 架构 / 聪明程度 / 是否已配 key
+│  └─ profiles/domains/*.json   按学院学科配置的权威期刊清单
+└─ docs/项目方案.md
+```
+
+## 三个工程怎么打开
+
+| 工程 | 工具 | 打开方式 | 运行方式 |
+|---|---|---|---|
+| `frontend` | HBuilderX | 文件 → 打开目录 → 选 `frontend` | 视图 → 终端，执行 `npm install` 后 `npm run dev`，浏览器访问 `http://localhost:5173` |
+| `backend` | IntelliJ IDEA | 文件 → 打开 → 选 `backend` 目录（Maven 自动识别 pom.xml） | 运行 `TransFlowApplication`，服务监听 `:8080` |
+
+> 后端为 **Spring Boot 2.7.18 + Java 8**，兼容 IntelliJ IDEA 2020.3 与 JDK 8：代码中不使用 `record`、`jakarta.*`、`Map.of/List.of`，故旧版 IDE 也能直接零报错编译运行。
+| `ml` | PyCharm | 打开 `ml` 目录 | `pip install -r ml/requirements.txt`；**运行 `ml/app.py`**（FastAPI 服务，监听 `:8000`）；`python ml/sources/classifier.py` 可单独自检分级器 |
+
+> 前端已配好代理：`/api` 自动转发到 `127.0.0.1:8080`，前后端各自启动即可联调。
+> 若后端跑在别的端口，启动前端前设置环境变量即可：`set VITE_API_TARGET=http://127.0.0.1:18080`（Windows）。
+> 后端已放开 `/api/**` 跨域（`allowedOriginPatterns("*")`），前端端口不固定也能直连。
+> IDEA 运行时工作目录默认在 `backend/`，`application.yml` 里 `transflow.data-dir` 已指向 `../data`。
+
+## 信源分级体系（`data/sources/sources.json`）
+
+术语证据按等级裁决，规则由代码强制执行：
+
+| 等级 | 处置 |
+|---|---|
+| 🔴 一级源（政府 / 本校 / 标准 / 央企等 9 类） | 可直接定译，锁定为**强制译法** |
+| 🟡 二级源（CNKI / ScienceDirect / SPE OnePetro 等 20 类） | 仅当一级源未覆盖时使用，且需**两个独立二级源译法一致** |
+| ⚫ 三级源（黑名单，百科 / 有道 / 维基 / 自媒体等 11 类） | **一律禁止**，命中即整条作废 |
+| 未识别（含短链） | 强制标记「待人工确认」 |
+
+分级器已在 Java 与 Python 两侧**同规则实现**并跑通自检：黑名单拦截、一级源锁定、一级源冲突检测、二级源交叉验证。
+
+## 期刊风格库（`data/profiles/domains/`）
+
+按西南石油大学 **15 个学院**覆盖 6 大领域配置权威期刊，每条标注影响力与**开放获取状态**——决定语料采集范围：
+
+- `petroleum.json` — 石油与天然气工程（SPE 系、Petroleum Science、Natural Gas Industry B…）
+- `geoscience.json` — 地质资源与地质工程（GSA/AGU、Geoscience Frontiers、Solid Earth…）
+- `engineering.json` — 机械 / 化工 / 新能源材料 / 电气 / 土木测绘（含 MDPI 系列 OA）
+- `science-tech.json` — 计算机与软件、理学
+- `humanities.json` — 经管、法学、马克思主义、外国语、体育、艺术
+
+采集边界：**只采开放获取全文或公开摘要**，订阅制期刊仅取元数据；遵守 robots.txt、限速 ≤1 req/s、记录 DOI。
+
+## 三大交互功能（已从"展示"升级为"可用"）
+
+**1. 译前准备 · 术语查证**（页面 `/prep`，接口 `POST /api/term/analyze`、`POST /api/term/authority`）
+输入文章中的词语（可带上下文）→ 判定所属领域 → 按「一级源优先，找不到再降二级，三级一律不用」检索信源。
+
+页面**直接显示**该词的权威英文译文，而不是只给一个网站链接：系统会调用一级源「全国术语在线」（T1-06，全国科学技术名词审定委员会）的站内检索接口，把 `中文词 → 官方英文译名` 连同**术语库出处、所属学科、发布年份、术语编号、中文释义、审定依据**一并呈现在「权威译文」卡片上，并可跳转到官网原始条目核对。同词在多个术语库有不同译名时，以「同词多库译名」表横向列出。
+
+- 一级源命中 → 状态 `locked`（锁定 · 一级源定译），可直接定稿；
+- 一级源未收录 → 卡片明确提示并降级，给出分级查证方案（一级 9 类 → 二级 8 类 → 三级一律不采用）；
+- 全程不经过任何搜索引擎，只走权威站点本身。
+- 接口 `POST /api/term/authority` 可单独取译文（页面上的「仅取权威译文」按钮），`found:false` 时返回降级原因。
+
+> 已适配两类网络环境：本机直连（默认）与容器/企业网（自动读取 `http_proxy` 出口代理；若存在 `NODE_EXTRA_CA_CERTS` / `SSL_CERT_FILE` 系统 CA 包则并入信任链，**不关闭证书校验**）。
+
+**2. 期刊风格翻译**（页面 `/journals`，接口 `POST /api/style/translate`）
+在期刊表中点选目标期刊 → 选择"成段 / 整篇" → 翻译。优先调用 ML 服务（`ml/app.py`）的风格模型；模型未接入时返回风格约束卡与明确状态，保证链路可联调。
+
+**3. 校对反思 · 模型选择**（页面 `/review`，接口 `GET /api/models`）
+主译 / 复核 / 裁决三个槽位分别选模型，展示厂商、架构与**聪明程度（★ 星级 + 大白话说明）**；自动提示"复核须与主译跨厂商、跨架构"，避免同源同错。
+
+## 当前进度
+
+- [x] 信源三级分级体系 + 分级器（Java / Python 双端同规则实现）
+- [x] 6 个领域共 90+ 本权威期刊配置
+- [x] **译前准备：术语查证 + 权威译文直显**（领域判定 + 分级信源策略 + 一级源在线取译名，接口与页面已实测）
+- [x] **期刊风格翻译**（选期刊 → 成段/整篇；含风格约束卡，待模型接入）
+- [x] **模型池目录 + 校对页模型选择**（厂商 / 架构 / 聪明程度）
+- [x] ML 服务入口 `ml/app.py`（FastAPI，`/health`、`/term/analyze`、`/style/translate`）
+- [x] 后端 API 已用 JDK 8 编译 + 启动 + 接口实测通过；前端 `vite build` 通过
+- [ ] 模型接入（主译 / 复核 / 裁决，需 API Key）
+- [ ] 期刊语料采集与风格模型训练（B1 判别器 / B2 LoRA）
+
+详细设计见 `docs/项目方案.md`。

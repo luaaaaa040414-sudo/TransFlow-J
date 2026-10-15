@@ -1,0 +1,58 @@
+# ============================================================
+#  TransFlow-J  .gitignore
+#  规则：源码 / 数据 / 文档 全部提交；依赖、构建产物、IDE 配置不提交。
+# ============================================================
+
+# ---------- 依赖与构建产物（体积大，由 package.json / pom.xml 还原）----------
+node_modules/
+dist/
+target/
+build/
+out/
+*.class
+.m2-failed-marker-backup/
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ---------- IDE / 编辑器 ----------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.hbuilderx/
+unpackage/
+.settings/
+.project
+.classpath
+
+# ---------- 日志与系统文件 ----------
+*.log
+logs/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- 环境变量与密钥（绝对不要提交）----------
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+application-local.yml
+application-local.properties
+secrets.properties
+
+# ---------- AI 工具工作目录 ----------
+# 这里存的是 AI 助手的工作记录，不属于项目源码。
+# 若你想把项目决策记录一并公开，删掉下面这一行即可。
+.workbuddy-ai/
+
+# ---------- 后续采集的语料体积大，按需取消注释 ----------
+# ml/corpus/

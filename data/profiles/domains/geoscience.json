@@ -1,0 +1,23 @@
+{
+  "domain": "geoscience",
+  "domain_zh": "地质资源与地质工程 / 地球科学",
+  "school_college": "地球科学与技术学院",
+  "motivation": "一级学科博士点，ESI 地球科学全球前 1%",
+  "priority": 1,
+  "journals": [
+    { "name": "Geology", "publisher_zh": "美国地质学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "pubs.geoscienceworld.org", "note": "地球科学顶级刊" },
+    { "name": "Geophysical Research Letters", "publisher_zh": "美国地球物理联合会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "agupubs.onlinelibrary.wiley.com", "note": "" },
+    { "name": "Journal of Geophysical Research: Solid Earth", "publisher_zh": "美国地球物理联合会", "tier": "high", "open_access": false, "collect_scope": "abstract_only", "site": "agupubs.onlinelibrary.wiley.com", "note": "" },
+    { "name": "AAPG Bulletin", "publisher_zh": "美国石油地质学家协会", "tier": "high", "open_access": false, "collect_scope": "abstract_only", "site": "pubs.geoscienceworld.org", "note": "石油地质权威" },
+    { "name": "Marine and Petroleum Geology", "publisher_zh": "爱思唯尔", "tier": "top", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "" },
+    { "name": "Basin Research", "publisher_zh": "威利 / 欧洲地球科学联合会", "tier": "high", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "onlinelibrary.wiley.com", "note": "盆地分析权威" },
+    { "name": "Sedimentary Geology", "publisher_zh": "爱思唯尔", "tier": "high", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "" },
+    { "name": "Earth and Planetary Science Letters", "publisher_zh": "爱思唯尔", "tier": "top", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "" },
+    { "name": "Geoscience Frontiers", "publisher_zh": "中国地质大学", "tier": "top", "open_access": true, "collect_scope": "fulltext", "site": "www.sciencedirect.com/journal/geoscience-frontiers", "note": "OA 可全文采集" },
+    { "name": "Journal of Earth Science", "publisher_zh": "中国地质大学 / 施普林格", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "link.springer.com/journal/12583", "note": "OA" },
+    { "name": "Solid Earth", "publisher_zh": "哥白尼出版社", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "solid-earth.net", "note": "OA" },
+    { "name": "National Science Review", "publisher_zh": "科学出版社 / 牛津", "tier": "top", "open_access": true, "collect_scope": "fulltext", "site": "academic.oup.com/nsr", "note": "综合顶尖 OA" },
+    { "name": "Scientific Reports", "publisher_zh": "自然出版集团", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "nature.com/articles/s41598-...", "note": "综合 OA，全学科通用" },
+    { "name": "Geofluids", "publisher_zh": "威利 / Hindawi", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "onlinelibrary.wiley.com/journal/geofluids", "note": "OA" }
+  ]
+}

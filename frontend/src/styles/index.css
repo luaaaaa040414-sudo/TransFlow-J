@@ -1,0 +1,11 @@
+:root {
+  font-family: 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+  color: #303133;
+  background: #f5f6f8;
+}
+
+* { box-sizing: border-box; }
+
+body, html, #app { height: 100%; margin: 0; }
+
+.card-title { font-weight: 500; }

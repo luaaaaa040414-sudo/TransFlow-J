@@ -1,0 +1,23 @@
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+spring:
+  application:
+    name: transflow-backend
+  jackson:
+    default-property-inclusion: non_null
+
+transflow:
+  # 数据目录：指向仓库根的 data，IDEA 运行时需改为绝对路径或软链
+  data-dir: ../data
+  # ML 服务（PyCharm 侧 FastAPI）地址，留空则走本地降级逻辑
+  ml-service-url: http://127.0.0.1:8000
+
+logging:
+  level:
+    com.swpu.transflow: debug

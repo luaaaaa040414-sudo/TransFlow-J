@@ -1,0 +1,138 @@
+{
+  "$comment": "模型池：跨厂商、跨架构，供译前/翻译/校对各阶段选择。capability 为「聪明程度」1-5 星，capability_desc 用大白话说明，方便不熟悉大模型的同学。configured 表示是否已配置 API Key（false = 待用户提供）。",
+  "version": "1.0",
+  "updated": "2026-10-15",
+  "capability_scale": {
+    "5": "旗舰级 —— 最强，适合疑难长句与术语密集的专业文本",
+    "4": "强力级 —— 绝大多数任务都够用，性价比高",
+    "3": "均衡级 —— 日常段落翻译可用，成本低",
+    "2": "轻量级 —— 仅适合短句、草稿，不建议用于定稿"
+  },
+  "roles": {
+    "draft": { "label": "主译", "desc": "负责初译，追求精准无错", "require": "capability ≥ 4" },
+    "review": { "label": "复核", "desc": "独立重译并比对，必须与主译跨厂商、跨架构，否则同源同错", "require": "与主译不同厂商且不同架构" },
+    "arbitrate": { "label": "裁决", "desc": "对主译/复核分歧做最终裁定，建议用最强模型", "require": "capability = 5" }
+  },
+  "models": [
+    {
+      "id": "deepseek-v3",
+      "name": "DeepSeek-V3",
+      "vendor": "深度求索 DeepSeek",
+      "architecture": "MoE 混合专家",
+      "capability": 5,
+      "capability_label": "旗舰级",
+      "capability_desc": "综合能力最强档，中文与专业术语表现突出，适合长难句",
+      "context": "64K",
+      "strength": "中文强、术语准、价格低",
+      "configured": false
+    },
+    {
+      "id": "deepseek-r1",
+      "name": "DeepSeek-R1",
+      "vendor": "深度求索 DeepSeek",
+      "architecture": "MoE + 思维链推理",
+      "capability": 5,
+      "capability_label": "旗舰级",
+      "capability_desc": "带推理过程的强模型，擅长需要推敲的疑难句与逻辑校对",
+      "context": "64K",
+      "strength": "推理强、可解释",
+      "configured": false
+    },
+    {
+      "id": "gpt-4o",
+      "name": "GPT-4o",
+      "vendor": "OpenAI",
+      "architecture": "稠密 Transformer",
+      "capability": 5,
+      "capability_label": "旗舰级",
+      "capability_desc": "综合能力最强档，英文地道，适合英译汉与英文润色",
+      "context": "128K",
+      "strength": "英文母语级、稳定",
+      "configured": false
+    },
+    {
+      "id": "claude-3-5-sonnet",
+      "name": "Claude 3.5 Sonnet",
+      "vendor": "Anthropic",
+      "architecture": "稠密 Transformer",
+      "capability": 5,
+      "capability_label": "旗舰级",
+      "capability_desc": "长文处理与语体把控优秀，适合整篇翻译与风格校准",
+      "context": "200K",
+      "strength": "长文稳、文风自然",
+      "configured": false
+    },
+    {
+      "id": "qwen-max",
+      "name": "Qwen2.5-Max（通义千问）",
+      "vendor": "阿里云",
+      "architecture": "MoE 混合专家",
+      "capability": 4,
+      "capability_label": "强力级",
+      "capability_desc": "绝大多数任务都够用，中文术语覆盖广，成本可控",
+      "context": "128K",
+      "strength": "中文强、生态全",
+      "configured": false
+    },
+    {
+      "id": "glm-4-plus",
+      "name": "GLM-4-Plus（智谱）",
+      "vendor": "智谱 AI",
+      "architecture": "稠密 Transformer",
+      "capability": 4,
+      "capability_label": "强力级",
+      "capability_desc": "学术语体表现好，适合论文与科技文本",
+      "context": "128K",
+      "strength": "学术风、中文好",
+      "configured": false
+    },
+    {
+      "id": "kimi-k1",
+      "name": "Kimi k1（月之暗面）",
+      "vendor": "月之暗面 Moonshot",
+      "architecture": "MoE + 长上下文",
+      "capability": 4,
+      "capability_label": "强力级",
+      "capability_desc": "超长上下文，适合成篇翻译与整篇校对",
+      "context": "200K+",
+      "strength": "长文强",
+      "configured": false
+    },
+    {
+      "id": "ernie-4",
+      "name": "文心一言 4.0",
+      "vendor": "百度",
+      "architecture": "稠密 Transformer",
+      "capability": 4,
+      "capability_label": "强力级",
+      "capability_desc": "中文表达自然，适合汉译英的中文理解环节",
+      "context": "128K",
+      "strength": "中文理解强",
+      "configured": false
+    },
+    {
+      "id": "gpt-4o-mini",
+      "name": "GPT-4o mini",
+      "vendor": "OpenAI",
+      "architecture": "稠密 Transformer",
+      "capability": 3,
+      "capability_label": "均衡级",
+      "capability_desc": "日常段落翻译可用，便宜快速，不建议用于定稿",
+      "context": "128K",
+      "strength": "便宜、快",
+      "configured": false
+    },
+    {
+      "id": "llama-3-1-405b",
+      "name": "Llama 3.1 405B",
+      "vendor": "Meta",
+      "architecture": "稠密 Transformer（开源）",
+      "capability": 4,
+      "capability_label": "强力级",
+      "capability_desc": "开源可私有部署，适合做对照实验与本地化",
+      "context": "128K",
+      "strength": "开源、可私有化",
+      "configured": false
+    }
+  ]
+}

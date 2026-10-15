@@ -1,0 +1,97 @@
+{
+  "$comment": "信源分级配置：驱动译前准备模块的术语核查策略。来源《信源问题.docx》(2026-10-15)",
+  "version": "1.0",
+  "source_document": "信源问题.docx",
+  "updated": "2026-10-15",
+
+  "policy": {
+    "default_tier": "tier1",
+    "tier1": "可直接作为定译依据",
+    "tier2": "仅当一级源未覆盖时使用，且需两个独立二级源交叉一致",
+    "tier3": "一律禁止，出现在引用链路中即报错",
+    "unmatched": "无任何信源覆盖的术语，强制标记为「待人工确认」，不得直接定稿"
+  },
+
+  "tiers": {
+    "tier1": {
+      "label": "一级源",
+      "mark": "🔴",
+      "definition": "官方原文、权威机构发布、无可辩驳",
+      "rule": "可直接作为定译依据",
+      "sources": [
+        { "id": "T1-01", "name": "中国政府网", "domains": ["gov.cn"], "notes": "english.www.gov.cn 及各省市 english.*.gov.cn", "affiliation": "国家政府", "hits": 14 },
+        { "id": "T1-02", "name": "教育部英文官网", "domains": ["moe.gov.cn"], "notes": "en.moe.gov.cn", "affiliation": "国家部委", "hits": 17 },
+        { "id": "T1-03", "name": "国务院新闻办公室", "domains": ["scio.gov.cn"], "notes": "english.scio.gov.cn", "affiliation": "国家机构", "hits": 9 },
+        { "id": "T1-04", "name": "西南石油大学官网", "domains": ["swpu.edu.cn"], "notes": "swpu.edu.cn 全系列，本校官方信源", "affiliation": "本校官方", "hits": 28 },
+        { "id": "T1-05", "name": "国家标准全文公开系统", "domains": ["samr.gov.cn"], "notes": "std.samr.gov.cn", "affiliation": "国家标准", "hits": 9 },
+        { "id": "T1-06", "name": "全国术语在线", "domains": ["termonline.cn"], "notes": "国家标准术语库", "affiliation": "国家标准术语", "hits": 5 },
+        { "id": "T1-07", "name": "中国科学院", "domains": ["cas.cn"], "notes": "cas.cn 系列", "affiliation": "科研机构", "hits": 5 },
+        { "id": "T1-08", "name": "中石油/中石化/中海油", "domains": ["cnpc.com.cn", "sinopecgroup.com", "cnooc.com.cn"], "notes": "央企官方信源", "affiliation": "央企官方", "hits": 4 },
+        { "id": "T1-09", "name": "国新办丝路网", "domains": ["imsilkroad.com"], "notes": "国家机构", "affiliation": "国家机构", "hits": 1 }
+      ]
+    },
+
+    "tier2": {
+      "label": "二级源",
+      "mark": "🟡",
+      "definition": "有学术价值但非官方定稿，需交叉验证",
+      "rule": "仅当一级源未覆盖时使用，且需两个独立二级源交叉一致",
+      "sources": [
+        { "id": "T2-01", "name": "CNKI 中国知网", "domains": ["cnki.net"], "notes": "kns.cnki.net / scholar.cnki.net / publish.cnki.net 等全系", "affiliation": "学术论文", "hits": 35 },
+        { "id": "T2-02", "name": "中国日报", "domains": ["chinadaily.com.cn"], "affiliation": "官方媒体", "hits": 8 },
+        { "id": "T2-03", "name": "ScienceDirect", "domains": ["sciencedirect.com"], "affiliation": "国际期刊", "hits": 2 },
+        { "id": "T2-04", "name": "Springer", "domains": ["springer.com", "link.springer.com"], "affiliation": "国际期刊", "hits": 1 },
+        { "id": "T2-05", "name": "SPE OnePetro", "domains": ["onepetro.org"], "affiliation": "石油专业", "hits": 3 },
+        { "id": "T2-06", "name": "Baker Hughes 技术文档", "domains": ["bakerhughes.com"], "affiliation": "企业技术", "hits": 1 },
+        { "id": "T2-07", "name": "CGTN", "domains": ["cgtn.com"], "affiliation": "官方媒体", "hits": 2 },
+        { "id": "T2-08", "name": "AAPG Datapages", "domains": ["datapages.com"], "affiliation": "石油地质", "hits": 1 },
+        { "id": "T2-09", "name": "OSTI 美国能源部文献库", "domains": ["osti.gov"], "affiliation": "政府科研", "hits": 1 },
+        { "id": "T2-10", "name": "ResearchGate", "domains": ["researchgate.net"], "affiliation": "学术社交", "hits": 1 },
+        { "id": "T2-11", "name": "JSTOR", "domains": ["jstor.org"], "affiliation": "学术数据库", "hits": 1 },
+        { "id": "T2-12", "name": "KeAi 出版", "domains": ["keaipublishing.com"], "affiliation": "学术期刊", "hits": 1 },
+        { "id": "T2-13", "name": "ERIC 教育文献库", "domains": ["eric.ed.gov"], "affiliation": "教育数据库", "hits": 1 },
+        { "id": "T2-14", "name": "石油学报", "domains": ["syxb-cps.com.cn"], "affiliation": "专业期刊", "hits": 2 },
+        { "id": "T2-15", "name": "中国新闻网", "domains": ["chinanews.com.cn"], "affiliation": "官方媒体", "hits": 1 },
+        { "id": "T2-16", "name": "阿尔伯塔大学论文", "domains": ["ualberta.ca"], "affiliation": "外校学术", "hits": 1 },
+        { "id": "T2-17", "name": "其他外校官网", "domains": ["cup.edu.cn", "tju.edu.cn", "fudan.edu.cn"], "notes": "edu.cn 域内非本校高校官网", "affiliation": "高校", "hits": 8 },
+        { "id": "T2-18", "name": "中国特色话语翻译术语库", "domains": ["catl.org.cn"], "notes": "term.catl.org.cn", "affiliation": "专业术语", "hits": 2 },
+        { "id": "T2-19", "name": "北大 CCL 语料库", "domains": ["ccl.pku.edu.cn"], "affiliation": "语料库", "hits": 2 },
+        { "id": "T2-20", "name": "国家哲社文献中心", "domains": ["ncpssd.cn"], "affiliation": "学术数据库", "hits": 1 }
+      ]
+    },
+
+    "tier3": {
+      "label": "三级源（黑名单）",
+      "mark": "⚫",
+      "definition": "无效/弱源/不可作为证据",
+      "rule": "一律禁止，出现在引用链路中即报错",
+      "enforcement": "hard_block",
+      "sources": [
+        { "id": "T3-01", "name": "百度百科", "domains": ["baike.baidu.com"], "type": "百科", "notes": "文档 H 类重点点名", "hits": 5 },
+        { "id": "T3-02", "name": "地名网", "domains": ["tcmap.com.cn"], "type": "弱源", "notes": "查社区名用，无效", "hits": 4 },
+        { "id": "T3-03", "name": "有道翻译", "domains": ["fanyi.youdao.com", "youdao.com"], "type": "机器翻译", "notes": "不能作为证据源", "hits": 2 },
+        { "id": "T3-04", "name": "汉典", "domains": ["zdic.net"], "type": "弱字典", "notes": "不够权威", "hits": 2 },
+        { "id": "T3-05", "name": "维基百科", "domains": ["wikipedia.org"], "type": "百科", "notes": "文档明确禁止", "hits": 1 },
+        { "id": "T3-06", "name": "微信公众号", "domains": ["mp.weixin.qq.com"], "type": "自媒体", "notes": "黑名单", "hits": 1 },
+        { "id": "T3-07", "name": "网易自媒体", "domains": ["163.com"], "type": "自媒体", "notes": "无效", "hits": 2 },
+        { "id": "T3-08", "name": "中国制造网", "domains": ["made-in-china.com"], "type": "电商", "notes": "无效", "hits": 1 },
+        { "id": "T3-09", "name": "MarketsWiki", "domains": ["marketswiki.com"], "type": "金融wiki", "notes": "无效", "hits": 1 },
+        { "id": "T3-10", "name": "中青报", "domains": ["cyol.com"], "type": "非官方", "notes": "未达一级", "hits": 1 },
+        { "id": "T3-11", "name": "未识别短链", "domains": [], "type": "混合", "notes": "含 ?use_xbridge3 / ?utm_source=chatgpt.com 等，需人工逐一确认", "hits": 8 }
+      ]
+    }
+  },
+
+  "project_context": {
+    "note": "本清单是「各领域专业术语查询点」的通用分级体系，不限单一领域。制定时的首个实例是高校校史翻译（西南石油大学），项目的目标是把同一套分级策略泛化到各领域。",
+    "initial_use_case": "高校校史翻译（西南石油大学），汉译英方向",
+    "direction": "zh-en",
+    "extensibility": "领域专用信源追加至 data/sources/domains/{domain}.json，与通用清单合并后生效；术语表按领域存于 data/glossary/{domain}.json",
+    "summary_from_doc": [
+      "一级源以「政府 + 本校 + 标准」三驾马车为主",
+      "二级源以 CNKI 为绝对主力",
+      "三级源集中在百科 + 地名网 + 有道",
+      "未识别短链需人工逐一确认"
+    ]
+  }
+}

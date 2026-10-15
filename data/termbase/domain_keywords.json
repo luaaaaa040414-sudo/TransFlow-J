@@ -1,0 +1,77 @@
+{
+  "$comment": "术语领域判定关键词表：译前准备阶段对任意词语判断所属学科领域。中英关键词并存，命中越多置信度越高。",
+  "version": "1.0",
+  "updated": "2026-10-15",
+  "domains": {
+    "petroleum": {
+      "domain_zh": "石油与天然气工程",
+      "priority": 1,
+      "keywords": [
+        "压裂", "水力压裂", "体积压裂", "钻井", "完井", "固井", "采油", "油藏", "储层", "渗透率",
+        "孔隙度", "采收率", "驱油", "注水", "注气", "抽油机", "套管", "油管", "射孔", "酸化",
+        "水平井", "定向井", "井筒", "钻头", "钻井液", "泥浆", "集输", "输油", "输气", "油气",
+        "原油", "天然气", "页岩气", "致密油", "煤层气", "天然气水合物", "断层", "圈闭", "地层压力",
+        "三次采油", "聚合物驱", "蒸汽吞吐", "举升", "井口", "采气", "炼化", "催化裂化", "加氢",
+        "fracturing", "drilling", "wellbore", "reservoir", "permeability", "porosity", "completion",
+        "cementing", "shale gas", "tight oil", "oilfield", "petroleum", "natural gas", "proppant",
+        "workover", "perforation", "waterflooding", "enhanced oil recovery", "EOR"
+      ]
+    },
+    "geoscience": {
+      "domain_zh": "地质资源与地质工程 / 地球科学",
+      "priority": 1,
+      "keywords": [
+        "地质", "地层", "岩性", "岩相", "构造", "褶皱", "断裂", "盆地", "沉积", "成岩",
+        "矿物", "岩石", "岩浆", "变质", "矿床", "地球化学", "同位素", "古生物", "化石", "地震勘探",
+        "测井", "物探", "重力", "磁法", "电法", "地热", "地下水", "水文地质", "滑坡", "泥石流",
+        "地质灾害", "板块", "地幔", "地壳", "geology", "strata", "stratum", "lithology", "facies",
+        "tectonic", "fold", "fault", "basin", "sedimentary", "diagenesis", "mineral", "magma",
+        "metamorphic", "ore deposit", "geochemistry", "isotope", "seismic", "well logging",
+        "geophysics", "groundwater", "geohazard", "landslide"
+      ]
+    },
+    "engineering": {
+      "domain_zh": "工程学科群（机械 / 化工 / 新能源材料 / 电气信息 / 土木测绘）",
+      "priority": 2,
+      "keywords": [
+        "机械", "齿轮", "轴承", "液压", "气动", "传动", "数控", "焊接", "铸造", "锻压",
+        "化工", "反应器", "催化剂", "精馏", "萃取", "聚合", "高分子", "膜分离", "传热", "传质",
+        "新能源", "锂电池", "燃料电池", "光伏", "储能", "电解", "电极", "电解质", "正极材料", "负极材料",
+        "电气", "电机", "变压器", "逆变器", "电力电子", "控制", "自动化", "传感器", "嵌入式", "通信",
+        "土木", "混凝土", "钢结构", "地基", "桩基", "隧道", "桥梁", "抗震", "测绘", "遥感",
+        "GIS", "北斗", "工程测量", "mechanical", "gear", "bearing", "hydraulic", "chemical reactor",
+        "catalyst", "distillation", "polymer", "lithium battery", "fuel cell", "photovoltaic",
+        "energy storage", "electrolyte", "electric motor", "transformer", "inverter", "concrete",
+        "steel structure", "foundation", "tunnel", "bridge", "surveying", "remote sensing"
+      ]
+    },
+    "science-tech": {
+      "domain_zh": "计算机与理学（数学 / 物理 / 化学 / 计算机）",
+      "priority": 3,
+      "keywords": [
+        "算法", "神经网络", "深度学习", "机器学习", "模型", "数据", "数据库", "编译", "操作系统", "网络",
+        "加密", "区块链", "云计算", "分布式", "并行", "量子", "粒子", "光学", "激光", "半导体",
+        "凝聚态", "微分", "积分", "矩阵", "概率", "统计", "拓扑", "方程", "化学反应", "有机",
+        "无机", "分析化学", "物理化学", "algorithm", "neural network", "deep learning", "machine learning",
+        "database", "compiler", "operating system", "encryption", "blockchain", "cloud computing",
+        "distributed", "quantum", "particle", "optics", "laser", "semiconductor", "topology",
+        "differential equation", "probability", "organic chemistry", "inorganic chemistry"
+      ]
+    },
+    "humanities": {
+      "domain_zh": "人文社科（经管 / 法学 / 马克思主义 / 外语 / 体育 / 艺术）",
+      "priority": 4,
+      "keywords": [
+        "经济", "管理", "金融", "会计", "营销", "供应链", "股权", "审计", "税收", "贸易",
+        "一带一路", "双一流", "碳中和", "碳达峰", "双碳", "新质生产力", "共同富裕",
+        "法律", "法规", "合同", "诉讼", "知识产权", "专利", "侵权", "仲裁", "立法", "司法",
+        "马克思主义", "唯物史观", "意识形态", "思想政治", "翻译", "语言学", "语义", "语用", "文体", "修辞",
+        "体育", "运动", "竞技", "训练", "艺术", "设计", "美学", "音乐", "美术", "传播",
+        "economy", "management", "finance", "accounting", "marketing", "supply chain", "law",
+        "regulation", "contract", "litigation", "intellectual property", "patent", "arbitration",
+        "Marxism", "ideology", "translation", "linguistics", "semantics", "pragmatics", "rhetoric",
+        "sports", "athletics", "art", "design", "aesthetics"
+      ]
+    }
+  }
+}

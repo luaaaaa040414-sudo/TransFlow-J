@@ -1,0 +1,79 @@
+{
+  "domain": "humanities",
+  "domain_zh": "人文社科学科群（经管 / 法学 / 马克思主义 / 外国语 / 体育 / 艺术）",
+  "school_college": "经济管理学院、法学院、马克思主义学院、外国语学院、体育学院、艺术学院",
+  "priority": 3,
+  "note": "人文社科全 OA 期刊较少，采集范围以 metadata 与公开摘要为主；风格画像可混合用 OA 与公开样本构建",
+  "subfields": [
+    {
+      "code": "economics",
+      "name": "经济管理",
+      "journals": [
+        { "name": "Management Science", "publisher_zh": "运筹学与管理学研究学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "pubsonline.informs.org", "note": "" },
+        { "name": "The Accounting Review", "publisher_zh": "美国会计学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "aaapubs.org", "note": "" },
+        { "name": "The Journal of Finance", "publisher_zh": "美国金融学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "afajof.org", "note": "" },
+        { "name": "Academy of Management Journal", "publisher_zh": "美国管理学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "journals.aom.org", "note": "" },
+        { "name": "Sustainability", "publisher_zh": "MDPI", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/sustainability", "note": "OA，经管类高引" },
+        { "name": "Journal of Risk and Financial Management", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/jrfm", "note": "OA" },
+        { "name": "International Journal of Environmental Research and Public Health", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/ijerph", "note": "OA，经管与公共健康交叉" }
+      ]
+    },
+    {
+      "code": "law",
+      "name": "法学",
+      "journals": [
+        { "name": "Harvard Law Review", "publisher_zh": "哈佛法学院", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "harvardlawreview.org", "note": "" },
+        { "name": "The Yale Law Journal", "publisher_zh": "耶鲁法学院", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "yalelegaljournal.org", "note": "" },
+        { "name": "American Journal of International Law", "publisher_zh": "美国国际法学会 / 剑桥", "tier": "high", "open_access": false, "collect_scope": "abstract_only", "site": "cambridge.org", "note": "" },
+        { "name": "German Law Journal", "publisher_zh": "剑桥大学出版社", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "cambridge.org/core/journals/german-law-journal", "note": "OA，法学类少有的全开放刊" },
+        { "name": "Asian Journal of International Law", "publisher_zh": "剑桥大学出版社", "tier": "mid", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "cambridge.org", "note": "亚太国际法，与本专业语境契合" }
+      ]
+    },
+    {
+      "code": "marxism",
+      "name": "马克思主义理论",
+      "journals": [
+        { "name": "New Left Review", "publisher_zh": "新左评论", "tier": "high", "open_access": false, "collect_scope": "abstract_only", "site": "newleftreview.org", "note": "" },
+        { "name": "Monthly Review", "publisher_zh": "每月评论出版社", "tier": "high", "open_access": false, "collect_scope": "abstract_only", "site": "monthlyreview.org", "note": "" },
+        { "name": "Historical Materialism", "publisher_zh": "布里尔", "tier": "mid", "open_access": false, "collect_scope": "abstract_only", "site": "brill.com", "note": "" },
+        { "name": "tripleC: Communication, Capitalism & Critique", "publisher_zh": "tripleC", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "triplec.at", "note": "OA，马克思主义批判研究少有的开放获取刊" },
+        { "name": "Capital & Class", "publisher_zh": "赛吉", "tier": "mid", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "journals.sagepub.com", "note": "" }
+      ]
+    },
+    {
+      "code": "linguistics",
+      "name": "外国语 / 语言学",
+      "journals": [
+        { "name": "Applied Linguistics", "publisher_zh": "牛津大学出版社", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "academic.oup.com", "note": "" },
+        { "name": "Language Learning", "publisher_zh": "威利", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "onlinelibrary.wiley.com", "note": "" },
+        { "name": "Studies in Second Language Acquisition", "publisher_zh": "剑桥大学出版社", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "cambridge.org", "note": "" },
+        { "name": "TESOL Quarterly", "publisher_zh": "威利 / 美国应用语言学学会", "tier": "high", "open_access": false, "collect_scope": "abstract_only", "site": "onlinelibrary.wiley.com", "note": "" },
+        { "name": "Language Learning & Technology", "publisher_zh": "夏威夷大学", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "lltjournal.org", "note": "OA，语言教学技术" },
+        { "name": "Ampersand", "publisher_zh": "爱思唯尔", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "sciencedirect.com/journal/ampersand", "note": "OA，语言学研究" },
+        { "name": "Linguistics Vanguard", "publisher_zh": "德古意特", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "degruyter.com", "note": "OA" },
+        { "name": "Babel", "publisher_zh": "约翰·本杰明斯 / 国际译联", "tier": "high", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "benjamins.com", "note": "翻译学国际期刊，与本项目直接相关" }
+      ]
+    },
+    {
+      "code": "sports",
+      "name": "体育学",
+      "journals": [
+        { "name": "Medicine & Science in Sports & Exercise", "publisher_zh": "威利 / 美国运动医学学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "journals.lww.com", "note": "" },
+        { "name": "Sports Medicine", "publisher_zh": "施普林格 / 国际运动医学联合会", "tier": "top", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "link.springer.com", "note": "" },
+        { "name": "Journal of Sports Sciences", "publisher_zh": "泰勒弗朗西斯", "tier": "high", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "tandfonline.com", "note": "" },
+        { "name": "Sports Medicine - Open", "publisher_zh": "施普林格", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "link.springer.com/journal/40798", "note": "OA" },
+        { "name": "Frontiers in Sports and Active Living", "publisher_zh": "Frontiers", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "frontiersin.org", "note": "OA" }
+      ]
+    },
+    {
+      "code": "arts",
+      "name": "艺术学",
+      "journals": [
+        { "name": "International Journal of Art & Design Education", "publisher_zh": "威利", "tier": "high", "open_access": false, "collect_scope": "abstract_only", "site": "onlinelibrary.wiley.com", "note": "" },
+        { "name": "Arts Education Policy Review", "publisher_zh": "泰勒弗朗西斯", "tier": "mid", "open_access": false, "collect_scope": "abstract_only", "site": "tandfonline.com", "note": "" },
+        { "name": "Arts", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/arts", "note": "OA，艺术学少有的开放刊" },
+        { "name": "International Journal of Education & the Arts", "publisher_zh": "IJEA", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "ijea.org", "note": "OA" }
+      ]
+    }
+  ]
+}

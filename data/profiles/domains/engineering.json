@@ -1,0 +1,76 @@
+{
+  "domain": "engineering",
+  "domain_zh": "工程学科群（机械 / 化工 / 新能源材料 / 电气信息 / 土木测绘）",
+  "school_college": "机电工程学院、化学化工学院、新能源与材料学院、电气信息学院、土木工程与测绘学院",
+  "priority": 2,
+  "subfields": [
+    {
+      "code": "mechanical",
+      "name": "机械工程",
+      "journals": [
+        { "name": "Journal of Mechanical Design", "publisher_zh": "美国机械工程师学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "asmedigitalcollection.asme.org", "note": "" },
+        { "name": "Mechanism and Machine Theory", "publisher_zh": "爱思唯尔", "tier": "top", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "" },
+        { "name": "International Journal of Mechanical Sciences", "publisher_zh": "爱思唯尔", "tier": "high", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "" },
+        { "name": "Tribology International", "publisher_zh": "爱思唯尔", "tier": "high", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "摩擦学，石油机械强相关" },
+        { "name": "Machines", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/machines", "note": "OA" },
+        { "name": "Lubricants", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/lubricants", "note": "OA" },
+        { "name": "Applied Sciences", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/appsci", "note": "工程综合 OA" }
+      ]
+    },
+    {
+      "code": "chemistry",
+      "name": "化学工程与技术",
+      "journals": [
+        { "name": "Journal of the American Chemical Society", "publisher_zh": "美国化学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "pubs.acs.org", "note": "" },
+        { "name": "Angewandte Chemie International Edition", "publisher_zh": "威利 / 德国化学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "onlinelibrary.wiley.com", "note": "" },
+        { "name": "Chemical Engineering Journal", "publisher_zh": "爱思唯尔", "tier": "top", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "" },
+        { "name": "AIChE Journal", "publisher_zh": "美国化学工程师学会", "tier": "high", "open_access": false, "collect_scope": "abstract_only", "site": "onlinelibrary.wiley.com", "note": "" },
+        { "name": "Industrial & Engineering Chemistry Research", "publisher_zh": "美国化学会", "tier": "high", "open_access": false, "collect_scope": "abstract_only", "site": "pubs.acs.org", "note": "" },
+        { "name": "ACS Omega", "publisher_zh": "美国化学会", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "pubs.acs.org/journal/acsodf", "note": "ACS 全 OA" },
+        { "name": "RSC Advances", "publisher_zh": "英国皇家化学会", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "pubs.rsc.org", "note": "OA" },
+        { "name": "Molecules", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/molecules", "note": "OA" },
+        { "name": "Global Challenges", "publisher_zh": "威利 / VCH", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "onlinelibrary.wiley.com", "note": "OA" }
+      ]
+    },
+    {
+      "code": "energy_materials",
+      "name": "新能源与材料",
+      "journals": [
+        { "name": "Advanced Materials", "publisher_zh": "威利", "tier": "top", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "onlinelibrary.wiley.com", "note": "" },
+        { "name": "Energy & Environmental Science", "publisher_zh": "英国皇家化学会", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "pubs.rsc.org", "note": "" },
+        { "name": "Nano Energy", "publisher_zh": "爱思唯尔", "tier": "top", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "" },
+        { "name": "Journal of Power Sources", "publisher_zh": "爱思唯尔", "tier": "high", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "" },
+        { "name": "Advanced Science", "publisher_zh": "威利", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "onlinelibrary.wiley.com", "note": "OA" },
+        { "name": "Nano-Micro Letters", "publisher_zh": "施普林格", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "link.springer.com/journal/40820", "note": "OA" },
+        { "name": "Materials", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/materials", "note": "材料综合 OA" },
+        { "name": "Nanomaterials", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/nanomaterials", "note": "OA" },
+        { "name": "Batteries", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/batteries", "note": "OA" },
+        { "name": "Solar RRL", "publisher_zh": "威利", "tier": "high", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "onlinelibrary.wiley.com", "note": "光伏，契合光伏新能源现代产业学院" }
+      ]
+    },
+    {
+      "code": "electrical",
+      "name": "电气信息 / 控制",
+      "journals": [
+        { "name": "IEEE Transactions on Power Systems", "publisher_zh": "IEEE", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "ieeexplore.ieee.org", "note": "" },
+        { "name": "IEEE Transactions on Industrial Electronics", "publisher_zh": "IEEE", "tier": "top", "open_access": false, "collect_scope": "abstract_only", "site": "ieeexplore.ieee.org", "note": "" },
+        { "name": "Automatica", "publisher_zh": "爱思唯尔", "tier": "top", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "" },
+        { "name": "IEEE Access", "publisher_zh": "IEEE", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "ieeexplore.ieee.org", "note": "IEEE 全 OA，电气与计算机通用" },
+        { "name": "Electronics", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/electronics", "note": "OA" },
+        { "name": "eTransportation", "publisher_zh": "爱思唯尔", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "sciencedirect.com/journal/etran", "note": "OA" }
+      ]
+    },
+    {
+      "code": "civil",
+      "name": "土木工程与测绘",
+      "journals": [
+        { "name": "Journal of Structural Engineering", "publisher_zh": "美国土木工程师学会", "tier": "high", "open_access": false, "collect_scope": "abstract_only", "site": "ascelibrary.org", "note": "" },
+        { "name": "Computers and Geotechnics", "publisher_zh": "爱思唯尔", "tier": "high", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "" },
+        { "name": "Remote Sensing of Environment", "publisher_zh": "爱思唯尔", "tier": "top", "open_access": "hybrid", "collect_scope": "metadata_only", "site": "sciencedirect.com", "note": "遥感，契合测绘学科" },
+        { "name": "Remote Sensing", "publisher_zh": "MDPI", "tier": "high", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/remotesensing", "note": "OA，遥感类高引" },
+        { "name": "Land", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/land", "note": "OA" },
+        { "name": "Buildings", "publisher_zh": "MDPI", "tier": "mid", "open_access": true, "collect_scope": "fulltext", "site": "mdpi.com/journal/buildings", "note": "OA" }
+      ]
+    }
+  ]
+}
