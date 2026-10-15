@@ -1,0 +1,24 @@
+# 统一换行符，避免 Windows / macOS / Linux 协同时整文件 diff
+* text=auto
+
+# 明确文本类型
+*.java   text
+*.xml    text
+*.yml    text
+*.json   text
+*.md     text
+*.js     text
+*.vue    text
+*.py     text
+*.css    text
+
+# 二进制文件不做换行符转换
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.pdf    binary
+*.xlsx   binary
+*.docx   binary
+*.jar    binary
