@@ -47,8 +47,17 @@ public class TermPrepService {
         Map<String, Object> auth = authority.lookup(q);
         result.put("authority", auth);
 
-        // 3. 本地术语库（若已收录，给出完整分级证据链）
-        Map<String, Object> hit = lookupTermbase(q);
+        // 3. 确定该词的英文译名：优先术语库一级源译法，其次术语在线的官方译名。
+        //    各网站检索词不同——中文站用中文原词，英文站（中国政府网英文版、教育部英文官网等）
+        //    必须用英文译名，否则必然搜不到。所以要先拿到英文译名再构造检索深链。
+        String enTerm = firstEnglishFromTermbase(q);
+        if (enTerm.isEmpty() && Boolean.TRUE.equals(auth.get("found"))) {
+            enTerm = String.valueOf(auth.get("translation"));
+        }
+        result.put("en_term", enTerm.isEmpty() ? null : enTerm);
+
+        // 4. 本地术语库（若已收录，给出完整分级证据链）
+        Map<String, Object> hit = lookupTermbase(q, enTerm);
         if (hit != null) {
             result.putAll(hit);
             result.put("source", "termbase");
@@ -56,13 +65,13 @@ public class TermPrepService {
             return result;
         }
 
-        // 4. 术语库未收录，但一级源命中 → 直接锁定为该词的定译
+        // 5. 术语库未收录，但一级源命中 → 直接锁定为该词的定译
         if (Boolean.TRUE.equals(auth.get("found"))) {
             String en = String.valueOf(auth.get("translation"));
             result.put("status", "locked");
             result.put("verdict_label", "锁定 · 一级源定译");
             result.put("translation", en);
-            result.put("evidence", evidenceFromAuthority(auth));
+            result.put("evidence", evidenceFromAuthority(auth, enTerm));
             result.put("reason", "一级源「全国术语在线」(T1-06) 已收录，出处《"
                     + auth.get("termbase") + "》，依策略可直接作为定译依据");
             result.put("policy", policy());
@@ -70,13 +79,13 @@ public class TermPrepService {
             return result;
         }
 
-        // 5. 两级都没有 → 生成分级查证方案（三级源一律不用）
+        // 6. 两级都没有 → 生成分级查证方案（三级源一律不用）
         result.put("status", "pending");
         result.put("verdict_label", "待查证");
         result.put("translation", null);
         result.put("evidence", Collections.emptyList());
         result.put("message", "一级源未收录该词，已按领域生成分级查证方案，请降级逐级核查（二级源需两个独立来源一致）");
-        result.put("searchPlan", buildSearchPlan(q));
+        result.put("searchPlan", buildSearchPlan(q, enTerm));
         result.put("policy", policy());
         result.put("source", "plan");
         return result;
@@ -87,20 +96,56 @@ public class TermPrepService {
         return authority.lookup(term);
     }
 
+    /** 从本地术语库取该词的首个英文译名（优先一级源），取不到返回空串 */
+    private String firstEnglishFromTermbase(String term) {
+        JsonNode root = data.read("termbase/terms.json");
+        if (root == null) {
+            return "";
+        }
+        for (JsonNode t : root.path("terms")) {
+            if (!t.path("term").asText().equalsIgnoreCase(term)) {
+                continue;
+            }
+            String fallback = "";
+            for (JsonNode tr : t.path("translations")) {
+                String text = tr.path("text").asText("");
+                if (text.isEmpty()) {
+                    continue;
+                }
+                if (fallback.isEmpty()) {
+                    fallback = text;
+                }
+                if ("tier1".equals(tr.path("tier").asText())) {
+                    return text;
+                }
+            }
+            return fallback;
+        }
+        return "";
+    }
+
     /** 把一级源结果转成与术语库同构的证据行，便于前端统一渲染 */
-    private List<Map<String, Object>> evidenceFromAuthority(Map<String, Object> auth) {
+    private List<Map<String, Object>> evidenceFromAuthority(Map<String, Object> auth, String enTerm) {
         List<Map<String, Object>> list = new ArrayList<>();
         String detail = String.valueOf(auth.get("detail_url"));
-        list.add(Maps.of(
-                "text", String.valueOf(auth.get("translation")),
-                "tier", "tier1",
-                "source_id", String.valueOf(auth.get("source_id")),
-                "source_name", String.valueOf(auth.get("source_name")),
-                "termbase", String.valueOf(auth.get("termbase")),
-                "url", detail,
+        Map<String, Object> row = Maps.newMap();
+        row.put("text", String.valueOf(auth.get("translation")));
+        row.put("tier", "tier1");
+        row.put("source_id", String.valueOf(auth.get("source_id")));
+        row.put("source_name", String.valueOf(auth.get("source_name")));
+        row.put("termbase", String.valueOf(auth.get("termbase")));
+        row.put("url", detail);
+        row.put("snippet", String.valueOf(auth.get("definition")));
+        // 术语在线走「原始条目」直链，而不是站内检索
+        row.putAll(Maps.of(
                 "search_url", detail,
                 "search_kind", "site-detail",
-                "snippet", String.valueOf(auth.get("definition"))));
+                "search_query", String.valueOf(auth.get("term")),
+                "search_lang", "zh",
+                "search_label", "术语在线原始条目",
+                "search_probe", "接口直取，非检索页"));
+        list.add(row);
+
         Object also = auth.get("also_from");
         if (also instanceof List) {
             for (Object o : (List<?>) also) {
@@ -117,16 +162,22 @@ public class TermPrepService {
                 if (en.equals(String.valueOf(auth.get("translation")))) {
                     continue;
                 }
-                list.add(Maps.of(
-                        "text", en,
-                        "tier", "tier1",
-                        "source_id", String.valueOf(auth.get("source_id")),
-                        "source_name", String.valueOf(auth.get("source_name")),
-                        "termbase", tb,
-                        "url", detail,
+                Map<String, Object> r2 = Maps.newMap();
+                r2.put("text", en);
+                r2.put("tier", "tier1");
+                r2.put("source_id", String.valueOf(auth.get("source_id")));
+                r2.put("source_name", String.valueOf(auth.get("source_name")));
+                r2.put("termbase", tb);
+                r2.put("url", detail);
+                r2.put("snippet", "术语库《" + tb + "》给出的译名");
+                r2.putAll(Maps.of(
                         "search_url", detail,
                         "search_kind", "site-detail",
-                        "snippet", "术语库《" + tb + "》给出的译名"));
+                        "search_query", String.valueOf(auth.get("term")),
+                        "search_lang", "zh",
+                        "search_label", "术语在线原始条目",
+                        "search_probe", "接口直取，非检索页"));
+                list.add(r2);
             }
         }
         return list;
@@ -177,7 +228,7 @@ public class TermPrepService {
     }
 
     /** 术语库查询；命中返回带裁决的结果，否则 null */
-    private Map<String, Object> lookupTermbase(String term) {
+    private Map<String, Object> lookupTermbase(String term, String enTerm) {
         JsonNode root = data.read("termbase/terms.json");
         if (root == null) {
             return null;
@@ -190,16 +241,16 @@ public class TermPrepService {
             for (JsonNode tr : t.path("translations")) {
                 String url = tr.path("url").asText();
                 String h = hostOf(url);
-                evidence.add(Maps.of(
-                        "text", tr.path("text").asText(),
-                        "tier", tr.path("tier").asText(),
-                        "source_id", tr.path("source_id").asText(),
-                        "source_name", tr.path("source_name").asText(),
-                        "termbase", tr.path("source_name").asText(),
-                        "url", url,
-                        "search_url", buildSearchUrl(h, term),
-                        "search_kind", hasSiteSearch(h) ? "site-search" : "homepage",
-                        "snippet", tr.path("snippet").asText()));
+                Map<String, Object> row = Maps.newMap();
+                row.put("text", tr.path("text").asText());
+                row.put("tier", tr.path("tier").asText());
+                row.put("source_id", tr.path("source_id").asText());
+                row.put("source_name", tr.path("source_name").asText());
+                row.put("termbase", tr.path("source_name").asText());
+                row.put("url", url);
+                row.put("snippet", tr.path("snippet").asText());
+                row.putAll(siteSearch(h, term, enTerm));
+                evidence.add(row);
             }
             Map<String, Object> r = Maps.newMap();
             r.put("term", t.path("term").asText());
@@ -260,21 +311,22 @@ public class TermPrepService {
     }
 
     /** 未收录词语的分级查证方案：一级优先 → 二级 → 三级不用 */
-    private List<Map<String, Object>> buildSearchPlan(String term) {
+    private List<Map<String, Object>> buildSearchPlan(String term, String enTerm) {
         JsonNode sources = data.read("sources/sources.json");
         List<Map<String, Object>> plan = new ArrayList<>();
         if (sources == null) {
             return plan;
         }
         JsonNode tiers = sources.path("tiers");
-        plan.add(round(tiers.path("tier1"), "tier1", "第一轮 · 一级源（官方权威，命中即锁定）", term, 9));
-        plan.add(round(tiers.path("tier2"), "tier2", "第二轮 · 二级源（一级源无覆盖时才用，需两个独立源一致）", term, 8));
+        plan.add(round(tiers.path("tier1"), "tier1", "第一轮 · 一级源（官方权威，命中即锁定）", term, enTerm, 9));
+        plan.add(round(tiers.path("tier2"), "tier2", "第二轮 · 二级源（一级源无覆盖时才用，需两个独立源一致）", term, enTerm, 8));
         plan.add(Maps.of("tier", "tier3", "label", "三级源（黑名单）", "count", 0,
                 "sources", Collections.emptyList(), "note", "一律不采用"));
         return plan;
     }
 
-    private Map<String, Object> round(JsonNode tier, String key, String label, String term, int limit) {
+    private Map<String, Object> round(JsonNode tier, String key, String label,
+                                      String term, String enTerm, int limit) {
         List<Map<String, Object>> list = new ArrayList<>();
         JsonNode arr = tier.path("sources");
         int i = 0;
@@ -284,51 +336,86 @@ public class TermPrepService {
             }
             JsonNode domains = s.path("domains");
             String host = domains.isArray() && domains.size() > 0 ? domains.get(0).asText() : "";
-            list.add(Maps.of(
-                    "name", s.path("name").asText(),
-                    "affiliation", s.path("affiliation").asText(),
-                    "site", host,
-                    "url", host.isEmpty() ? "" : "https://" + host + "/",
-                    "search_url", buildSearchUrl(host, term),
-                    "search_kind", hasSiteSearch(host) ? "site-search" : "homepage",
-                    "query", term));
+            Map<String, Object> item = Maps.newMap();
+            item.put("name", s.path("name").asText());
+            item.put("affiliation", s.path("affiliation").asText());
+            item.put("site", host);
+            item.put("url", host.isEmpty() ? "" : "https://" + host + "/");
+            item.putAll(siteSearch(host, term, enTerm));
+            list.add(item);
         }
         return Maps.of("tier", key, "label", label, "count", list.size(), "sources", list);
     }
 
-    /** 构造「进入该官网检索该词」的深链；未配置模板则回退到该站首页（绝不经过搜索引擎） */
-    private String buildSearchUrl(String host, String term) {
+    /**
+     * 构造「进入该站检索该词」的深链。**不同网站要用不同的检索词**：
+     *   - 中文站（中国政府网、中科院、术语在线）→ 用中文原词
+     *   - 英文站（中国政府网英文版、教育部英文官网）→ 必须用英文译名，用中文词必然搜不到
+     * 各站的检索参数名与编码方式也各不相同，统一由 search_templates.json v3 驱动。
+     * 未配置可用深链的站点如实标注为 homepage / form，绝不假装能检索。
+     *
+     * @return url / search_kind / search_query / search_lang / search_label / search_note / search_probe
+     */
+    private Map<String, Object> siteSearch(String host, String zhTerm, String enTerm) {
+        Map<String, Object> out = Maps.newMap();
         if (host == null || host.isEmpty()) {
-            return "";
+            out.put("search_url", "");
+            out.put("search_kind", "homepage");
+            out.put("search_query", "");
+            out.put("search_lang", "zh");
+            out.put("search_label", "");
+            out.put("search_note", "");
+            out.put("search_probe", "");
+            return out;
         }
-        String q = enc(term);
-        JsonNode cfg = data.read("sources/search_templates.json");
-        if (cfg != null) {
-            String tpl = templateFor(cfg.path("templates"), host);
-            if (tpl != null && !tpl.isEmpty()) {
-                return tpl.replace("{q}", q);
-            }
-            String def = cfg.path("default").asText("");
-            if (!def.isEmpty()) {
-                return def.replace("{base}", "https://" + host).replace("{q}", q);
-            }
-        }
-        return "https://" + host + "/";
-    }
 
-    /** 该信源是否有站内检索模板（有=可直接检索，无=只能打开首页） */
-    private boolean hasSiteSearch(String host) {
-        if (host == null || host.isEmpty()) {
-            return false;
-        }
+        String base = "https://" + host;
         JsonNode cfg = data.read("sources/search_templates.json");
-        return cfg != null && templateFor(cfg.path("templates"), host) != null;
-    }
+        JsonNode def = cfg == null ? null : cfg.path("default");
+        JsonNode t = cfg == null ? null : cfg.path("templates").path(host);
+        boolean configured = t != null && !t.isMissingNode() && !t.isNull();
 
-    /** 精确匹配 host（显式子域需在模板中单独列出，避免 scio.gov.cn 被误配成 gov.cn） */
-    private String templateFor(JsonNode templates, String host) {
-        JsonNode t = templates.path(host);
-        return (t.isTextual() && !t.asText().isEmpty()) ? t.asText() : null;
+        String kind = configured ? t.path("kind").asText("homepage")
+                : (def != null && def.hasNonNull("kind") ? def.path("kind").asText("homepage") : "homepage");
+        String lang = configured ? t.path("query_lang").asText("zh")
+                : (def != null && def.hasNonNull("query_lang") ? def.path("query_lang").asText("zh") : "zh");
+        String encMode = configured ? t.path("encode").asText("normal") : "normal";
+        String label = configured ? t.path("label").asText("") : "";
+        String note = configured ? t.path("note").asText("")
+                : (def == null ? "" : def.path("note").asText(""));
+        String probe = configured ? t.path("probe").asText("") : "";
+
+        // 按站点要求挑选检索词：英文站用英文译名；若该词没有英文译名则退回中文并如实标注
+        String query = zhTerm == null ? "" : zhTerm;
+        String usedLang = "zh";
+        if ("en".equals(lang)) {
+            if (enTerm != null && !enTerm.isEmpty()) {
+                query = enTerm;
+                usedLang = "en";
+            } else {
+                usedLang = "zh-fallback";
+                if (note.isEmpty()) {
+                    note = "该站为英文站，宜用英文译名检索；本次未取得英文译名，暂以中文原词代替";
+                }
+            }
+        }
+
+        String url;
+        if (configured && t.hasNonNull("url")) {
+            String tpl = t.path("url").asText("");
+            url = query.isEmpty() ? tpl : tpl.replace("{q}", enc(query, encMode));
+        } else {
+            url = base + "/";
+        }
+
+        out.put("search_url", url);
+        out.put("search_kind", kind);
+        out.put("search_query", query);
+        out.put("search_lang", usedLang);
+        out.put("search_label", label);
+        out.put("search_note", note);
+        out.put("search_probe", probe);
+        return out;
     }
 
     private String hostOf(String url) {
@@ -341,12 +428,19 @@ public class TermPrepService {
         }
     }
 
-    private String enc(String s) {
+    /** 单次 URL 编码。空格统一用 %20（而非 +），部分站点不解析 + 形式的空格 */
+    private String encOnce(String s) {
         try {
-            return java.net.URLEncoder.encode(s == null ? "" : s, "UTF-8");
+            return java.net.URLEncoder.encode(s == null ? "" : s, "UTF-8").replace("+", "%20");
         } catch (Exception e) {
             return "";
         }
+    }
+
+    /** 按站点要求编码：normal 单次；double 双重（部分站点前端会再 decodeURI 一次，不双重编码会变乱码） */
+    private String enc(String s, String mode) {
+        String once = encOnce(s);
+        return "double".equals(mode) ? encOnce(once) : once;
     }
 
     private Map<String, Object> policy() {

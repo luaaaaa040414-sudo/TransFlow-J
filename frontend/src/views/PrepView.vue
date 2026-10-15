@@ -54,8 +54,20 @@ const statusTag = (s) =>
   ({ locked: 'success', confirmed: 'warning', pending: 'info', conflict: 'danger', blocked: 'danger', invalid: 'info' }[s] || 'info')
 const tierTag = (t) => (t === 'tier1' ? 'success' : t === 'tier2' ? 'warning' : 'danger')
 const tierText = (t) => (t === 'tier1' ? '一级源' : t === 'tier2' ? '二级源' : t === 'tier3' ? '三级源（黑名单）' : t)
-const verifyLabel = (row) =>
-  row.search_kind === 'site-detail' ? '打开官网原始条目' : row.search_kind === 'site-search' ? '进官网检索' : '打开官网'
+
+// 核验按钮文案：按该站真实能力区分，不给「看起来能搜其实搜不到」的假链接
+const verifyLabel = (row) => {
+  if (row.search_kind === 'site-detail') return '打开官网原始条目'
+  if (row.search_kind === 'site-search') return '进官网检索'
+  if (row.search_kind === 'form') return '打开查询系统'
+  return '打开官网'
+}
+const kindTag = (k) =>
+  ({ 'site-search': 'success', 'site-detail': 'success', form: 'warning', homepage: 'info' }[k] || 'info')
+const kindText = (k) =>
+  ({ 'site-search': '可站内检索', 'site-detail': '直取条目', form: '需手动查询', homepage: '无检索入口' }[k] || k)
+const langText = (l) => ({ zh: '中文词', en: '英文译名', 'zh-fallback': '中文词（未取到英文译名）' }[l] || l)
+const langTag = (l) => (l === 'en' ? 'success' : l === 'zh-fallback' ? 'warning' : 'primary')
 </script>
 
 <template>
@@ -155,41 +167,84 @@ const verifyLabel = (row) =>
 
       <el-card shadow="never" v-if="(result.evidence || []).length">
         <template #header><span class="card-title">③ 权威信源证据链</span></template>
+        <el-alert type="info" :closable="false" class="prep__tip"
+          title="每个信源用哪个词检索、能不能真的检索到，都在表里如实标注。英文站（中国政府网英文版、教育部英文官网）必须用英文译名，用中文词是搜不到的；没有检索入口的站点直接标为「无检索入口」，不给你一个点了没结果的链接。" />
         <el-table :data="result.evidence" size="small" border stripe>
-          <el-table-column prop="text" label="译文" min-width="180" />
-          <el-table-column label="等级" width="120">
+          <el-table-column prop="text" label="译文" min-width="160" />
+          <el-table-column label="等级" width="100">
             <template #default="{ row }">
               <el-tag size="small" :type="tierTag(row.tier)">{{ tierText(row.tier) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="source_name" label="信源" min-width="150" />
-          <el-table-column prop="termbase" label="术语库 / 出处" min-width="150" />
-          <el-table-column prop="snippet" label="证明 / 释义" min-width="240" show-overflow-tooltip />
-          <el-table-column label="核验" width="150">
+          <el-table-column prop="source_name" label="信源" min-width="140" />
+          <el-table-column prop="termbase" label="术语库 / 出处" min-width="140" />
+          <el-table-column prop="snippet" label="证明 / 释义" min-width="200" show-overflow-tooltip />
+          <el-table-column label="该站检索词" min-width="190">
             <template #default="{ row }">
-              <el-link :href="row.search_url || row.url" target="_blank" type="primary">{{ verifyLabel(row) }}</el-link>
+              <div v-if="row.search_query" class="prep__q">
+                <span class="prep__q-text">{{ row.search_query }}</span>
+                <el-tag size="small" effect="plain" :type="langTag(row.search_lang)">
+                  {{ langText(row.search_lang) }}
+                </el-tag>
+              </div>
+              <span v-else class="prep__q-none">—</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="核验" min-width="160">
+            <template #default="{ row }">
+              <div class="prep__verify">
+                <el-tag size="small" :type="kindTag(row.search_kind)" effect="plain">
+                  {{ kindText(row.search_kind) }}
+                </el-tag>
+                <el-link v-if="row.search_url" :href="row.search_url" target="_blank" type="primary">
+                  {{ verifyLabel(row) }}
+                </el-link>
+              </div>
             </template>
           </el-table-column>
         </el-table>
       </el-card>
 
       <el-card shadow="never" v-if="(result.searchPlan || []).length">
-        <template #header><span class="card-title">③ 分级查证方案（一级源未收录，按此降级核查）</span></template>
+        <template #header><span class="card-title">④ 分级查证方案（一级源未收录，按此降级核查）</span></template>
         <div v-for="r in result.searchPlan" :key="r.tier" class="prep__round">
           <div class="prep__round-head">
             <el-tag :type="tierTag(r.tier)" size="small">{{ r.label }}</el-tag>
             <span class="prep__round-note" v-if="r.note">{{ r.note }}</span>
+            <span class="prep__round-note" v-else>共 {{ r.count }} 个信源</span>
           </div>
-          <div v-if="(r.sources || []).length" class="prep__sources">
-            <el-link v-for="s in r.sources" :key="s.name" :href="s.search_url || s.url" target="_blank" class="prep__source">
-              {{ s.name }}（检索「{{ s.query }}」）
-            </el-link>
-          </div>
+          <el-table v-if="(r.sources || []).length" :data="r.sources" size="small" border>
+            <el-table-column prop="name" label="信源" min-width="150" />
+            <el-table-column prop="affiliation" label="归属" min-width="110" />
+            <el-table-column label="该站检索词" min-width="190">
+              <template #default="{ row }">
+                <div v-if="row.search_query" class="prep__q">
+                  <span class="prep__q-text">{{ row.search_query }}</span>
+                  <el-tag size="small" effect="plain" :type="langTag(row.search_lang)">
+                    {{ langText(row.search_lang) }}
+                  </el-tag>
+                </div>
+                <span v-else class="prep__q-none">—</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="核验" min-width="170">
+              <template #default="{ row }">
+                <div class="prep__verify">
+                  <el-tag size="small" :type="kindTag(row.search_kind)" effect="plain">
+                    {{ kindText(row.search_kind) }}
+                  </el-tag>
+                  <el-link v-if="row.search_url" :href="row.search_url" target="_blank" type="primary">
+                    {{ verifyLabel(row) }}
+                  </el-link>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
       </el-card>
 
       <el-card shadow="never" v-if="result.policy">
-        <template #header><span class="card-title">信源使用策略</span></template>
+        <template #header><span class="card-title">⑤ 信源使用策略</span></template>
         <ul class="prep__policy">
           <li><b>一级源</b>：{{ result.policy.tier1 }}</li>
           <li><b>二级源</b>：{{ result.policy.tier2 }}</li>
@@ -226,7 +281,12 @@ const verifyLabel = (row) =>
 .prep__reason { margin-top: 10px; font-size: 13px; color: var(--el-text-color-secondary); }
 .prep__verdict { display: flex; align-items: center; gap: 16px; }
 .prep__translation { font-size: 15px; }
-.prep__round { margin-bottom: 16px; }
+.prep__tip { margin-bottom: 12px; }
+.prep__q { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.prep__q-text { font-family: Consolas, Menlo, monospace; font-size: 12px; }
+.prep__q-none { color: var(--el-text-color-placeholder); }
+.prep__verify { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.prep__round { margin-bottom: 18px; }
 .prep__round-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .prep__round-note { font-size: 12px; color: var(--el-text-color-secondary); }
 .prep__sources { display: flex; flex-wrap: wrap; gap: 8px 18px; }
