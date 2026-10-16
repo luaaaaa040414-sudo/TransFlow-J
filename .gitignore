@@ -58,5 +58,8 @@ secrets.properties
 tools/*.exe
 tools/cloudflared*
 
+# 内网穿透的临时公网地址（每次重启都会变，不进仓库）
+TUNNEL-URL.txt
+
 # ---------- 后续采集的语料体积大，按需取消注释 ----------
 # ml/corpus/

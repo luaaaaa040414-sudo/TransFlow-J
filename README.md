@@ -84,10 +84,37 @@ node scripts/dev-url.mjs
 |---|---|---|
 | **电脑移动热点**（最推荐） | 设置 → 网络和 Internet → 移动热点 → 打开；同事连你的热点，你俩立刻处于同一局域网。之后重跑 `node scripts/dev-url.mjs` 查新 IP（Windows 热点通常给 `192.168.137.x`） | 面对面、同一栋楼 |
 | **手机热点** | 你开手机热点，同事连上即可（局域网内互访不消耗蜂窝流量）。同样要重跑脚本查新 IP | 面对面 |
-| **内网穿透** | 装 `cloudflared`，执行 `cloudflared tunnel --url http://localhost:5173`，会得到一个 `https://xxxx.trycloudflare.com` 地址，发给同事即可 | 天各一方 |
+| **内网穿透** | 见下方「内网穿透：不在同一网络也能访问」 | 天各一方 |
 
-> 用内网穿透时，前端必须允许域名访问 —— 本仓库 `vite.config.js` 已配好 `allowedHosts: true`，否则 Vite 会报 "Blocked request. This host is not allowed."。
-> 后端接口由前端 `/api` 代理转发，所以**只需穿透前端一个端口**。
+**内网穿透：不在同一网络也能访问**
+
+本仓库已配好一键穿透脚本（用 Cloudflare 的免费快速隧道，**不用注册账号**）：
+
+```bash
+# 一次性安装 cloudflared（Windows 自带 winget）
+winget install Cloudflare.cloudflared
+
+# 之后每次要用，在仓库根目录执行：
+node scripts/tunnel.mjs
+# 或在 frontend 下： npm run tunnel
+```
+
+脚本会自动探测前端实际端口、建立隧道，并打印出一个公网地址，例如：
+
+```
+==========================================================
+  把这个公网地址发给同事（他们用什么网络都能打开）：
+  https://flame-rear-biodiversity-online.trycloudflare.com
+==========================================================
+```
+
+把该地址发给同事即可 —— 他们用任何网络（家里、流量、别的 WiFi）都能打开。
+
+> - 保持运行脚本的那个窗口开着；关掉隧道就断了
+> - 后端接口由前端 `/api` 自动代理，**只需穿透前端一个端口**
+> - 地址是临时的，每次重启都会变，重新跑一次脚本拿新地址
+> - 首次访问可能出现 Cloudflare 的提示页，点继续即可
+> - 原理：Vite 已配置 `allowedHosts: true`，否则 Vite 会拒绝来自该域名的请求
 
 ### B. 和同学一起写代码（用 Git，不是局域网 IP）
 

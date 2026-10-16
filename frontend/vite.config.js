@@ -14,7 +14,10 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
-    strictPort: false,
+    // strictPort: true —— 端口被占用时直接报错，而不是「悄悄换成 5174」。
+    // 这样做内网穿透时端口恒定，隧道不用重跑；
+    // 否则一旦自动换端口，已建立的隧道会指向空端口，同事那边报 502。
+    strictPort: true,
     // 允许通过任意域名访问。内网穿透（ngrok / Cloudflare Tunnel）会把本地服务
     // 映射成一个公网域名，而 Vite 默认只接受 localhost 与 IP 的 Host 头，
     // 用域名访问会被拒（返回 "Blocked request. This host is not allowed."）。
