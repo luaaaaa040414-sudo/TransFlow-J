@@ -12,6 +12,7 @@
 │  ├─ termbase/                 术语库：domain_keywords.json（领域判定）+ terms.json（已收录术语的分级证据）
 │  ├─ models/models.json        模型池：厂商 / 架构 / 聪明程度 / 是否已配 key
 │  └─ profiles/domains/*.json   按学院学科配置的权威期刊清单
+├─ scripts/dev-url.mjs          打印局域网访问地址（多人协作分享用）
 └─ docs/项目方案.md
 ```
 
@@ -19,14 +20,87 @@
 
 | 工程 | 工具 | 打开方式 | 运行方式 |
 |---|---|---|---|
-| `frontend` | HBuilderX | 文件 → 打开目录 → 选 `frontend` | 视图 → 终端，执行 `npm install` 后 `npm run dev`，浏览器访问 `http://localhost:5173` |
+| `frontend` | HBuilderX | 文件 → 打开目录 → 选 `frontend` | 视图 → 终端，执行 `npm install` 后 `npm run dev` |
 | `backend` | IntelliJ IDEA | 文件 → 打开 → 选 `backend` 目录（Maven 自动识别 pom.xml） | 运行 `TransFlowApplication`，服务监听 `:8080` |
+| `ml` | PyCharm | 打开 `ml` 目录 | `pip install -r ml/requirements.txt`；**运行 `ml/app.py`**（FastAPI，监听 `:8000`）；`python ml/sources/classifier.py` 可单独自检分级器 |
 
 > 后端为 **Spring Boot 2.7.18 + Java 8**，兼容 IntelliJ IDEA 2020.3 与 JDK 8：代码中不使用 `record`、`jakarta.*`、`Map.of/List.of`，故旧版 IDE 也能直接零报错编译运行。
-| `ml` | PyCharm | 打开 `ml` 目录 | `pip install -r ml/requirements.txt`；**运行 `ml/app.py`**（FastAPI 服务，监听 `:8000`）；`python ml/sources/classifier.py` 可单独自检分级器 |
 
-> 前端已配好代理：`/api` 自动转发到 `127.0.0.1:8080`，前后端各自启动即可联调。
-> 若后端跑在别的端口，启动前端前设置环境变量即可：`set VITE_API_TARGET=http://127.0.0.1:18080`（Windows）。
+## 多人协作：两种需求，两条路
+
+先分清楚 —— **「让同学打开页面看效果」和「和同学一起写代码」是两件不同的事**：
+
+| 你想做什么 | 该用什么 | 看哪节 |
+|---|---|---|
+| 同学想**看看效果 / 试用** | 局域网 IP（需同一 WiFi） | A 节 |
+| 同学要**一起写代码** | Git 仓库，各自本地跑 | B 节 |
+
+### A. 让同学访问你机器上的页面（仅限同一局域网）
+
+三个服务**都监听 `0.0.0.0`**，同学用你的**局域网 IP** 就能打开。
+
+**先查自己的局域网 IP（同时会自检三个服务是否真的起来了）：**
+
+```bash
+# 仓库根目录
+node scripts/dev-url.mjs
+# 或在 frontend 下： npm run url
+```
+
+输出示例：
+
+```
+本机当前局域网 IP：192.168.16.50（网卡：WLAN）
+
+【发给同事的地址】
+  前端页面　http://192.168.16.50:5173/
+  后端接口　http://192.168.16.50:8080/
+
+【服务自检】
+  [√] 前端页面 :5173  正常（局域网可达）
+  [√] 后端接口 :8080  正常（局域网可达）
+```
+
+> ⚠️ **本机 IP 会随网络变化**（换 WiFi、重连路由器都会变）。Vite 启动时打印的 `Network` 地址是「启动那一刻」的，换网络后**不会自动更新** —— 所以换网络后要 **① 重启 vite ② 重新运行本脚本**，别再用旧 IP。
+
+**同学只需要前端地址** —— 页面里的 `/api` 请求会由前端开发服务器自动代理到后端，不需要单独访问 8080。
+
+**同学打不开时按顺序排查：**
+
+1. **地址对不对**：必须用本脚本打印的局域网 IP。不能用 `localhost`，也不能用旧 IP（旧 IP 会一直打不开）。
+2. **是否同一局域网**：必须连同一个 WiFi / 同一台路由器。
+3. **AP 隔离**：公司、学校、酒店的 WiFi 常开「AP 隔离 / 客户端隔离」，同一 WiFi 下设备之间也互相访问不了。
+   验证方法：让同学在命令行执行 `ping <你的IP>`。通则网络可达（问题在防火墙）；不通则大概率是 AP 隔离 —— 改用**手机热点**，两人连同一个热点即可。
+4. **Windows 防火墙**放行 Node.js 与 java.exe 的入站（首次运行通常会弹窗，选"允许"）。
+5. **跨网络**（同学不在同一 WiFi，比如各自在家）：局域网 IP 完全无效，需要内网穿透（frp / ngrok / Cloudflare Tunnel）或部署到服务器。
+6. 确认前端是用 `npm run dev` 启动的（会自动读 `vite.config.js` 的 `host: '0.0.0.0'`），而不是被别处参数覆盖成 `127.0.0.1`。
+7. 后端若跑在**另一台机器**上，在 `frontend` 下设置环境变量后再启动前端：
+   `set VITE_API_TARGET=http://<后端IP>:8080 && npm run dev`
+   同理，ML 服务在别的机器时改 `backend/src/main/resources/application.yml` 的 `transflow.ml-service-url`。
+
+**如果同事和你不在同一个 WiFi**（各自在家、连了不同网络）：局域网 IP 完全无效，改用下面任一方式：
+
+| 方式 | 怎么做 | 适合场景 |
+|---|---|---|
+| **电脑移动热点**（最推荐） | 设置 → 网络和 Internet → 移动热点 → 打开；同事连你的热点，你俩立刻处于同一局域网。之后重跑 `node scripts/dev-url.mjs` 查新 IP（Windows 热点通常给 `192.168.137.x`） | 面对面、同一栋楼 |
+| **手机热点** | 你开手机热点，同事连上即可（局域网内互访不消耗蜂窝流量）。同样要重跑脚本查新 IP | 面对面 |
+| **内网穿透** | 装 `cloudflared`，执行 `cloudflared tunnel --url http://localhost:5173`，会得到一个 `https://xxxx.trycloudflare.com` 地址，发给同事即可 | 天各一方 |
+
+> 用内网穿透时，前端必须允许域名访问 —— 本仓库 `vite.config.js` 已配好 `allowedHosts: true`，否则 Vite 会报 "Blocked request. This host is not allowed."。
+> 后端接口由前端 `/api` 代理转发，所以**只需穿透前端一个端口**。
+
+### B. 和同学一起写代码（用 Git，不是局域网 IP）
+
+**局域网访问解决不了"一起写代码"** —— 同学打开的是**你电脑上跑着的页面**，他们只能看，改不了代码；你的改动也不会进他们的编辑器。真要协作开发，用 Git：
+
+1. 代码推到远端仓库（Gitee 对国内网络更稳，GitHub 也可以）。
+2. 每人 `git clone` 到自己电脑，**各自跑自己的 `npm run dev`** —— 这时各自用 `localhost` 完全没问题，互不干扰。
+3. 改完 `git commit && git push`，别人 `git pull` 同步。
+
+> 提交前注意：`frontend/node_modules`（180MB）等已在 `.gitignore` 里排除，只提交源码。
+> 若只是想**让同学实时看到你正在改的效果**（演示场景），才用 A 节的局域网地址。
+
+> 前端已配好代理：`/api` 默认转发到本机 `127.0.0.1:8080`（这是**服务端转发**，写 127.0.0.1 是正确的）。
 > 后端已放开 `/api/**` 跨域（`allowedOriginPatterns("*")`），前端端口不固定也能直连。
 > IDEA 运行时工作目录默认在 `backend/`，`application.yml` 里 `transflow.data-dir` 已指向 `../data`。
 

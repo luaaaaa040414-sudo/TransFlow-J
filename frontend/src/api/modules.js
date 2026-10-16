@@ -18,6 +18,8 @@ export const styleTranslate = (payload) => request.post('/style/translate', payl
 // 期刊风格库
 export const fetchDomains = () => request.get('/profiles/domains')
 export const fetchDomainDetail = (domain) => request.get(`/profiles/domains/${domain}`)
+// 全库期刊平铺清单（供流水线总览的目标期刊下拉选择）
+export const fetchAllJournals = () => request.get('/journals')
 
 // 流水线
 export const runPipeline = (payload) => request.post('/pipeline/run', payload)

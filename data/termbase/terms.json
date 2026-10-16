@@ -79,14 +79,14 @@
     },
     {
       "term": "碳中和",
-      "domain": "humanities",
+      "domain": "engineering",
       "translations": [
         { "text": "carbon neutrality", "tier": "tier1", "source_id": "T1-01", "source_name": "中国政府网", "url": "https://english.www.gov.cn/", "snippet": "官方气候承诺固定译法" }
       ]
     },
     {
       "term": "碳达峰",
-      "domain": "humanities",
+      "domain": "engineering",
       "translations": [
         { "text": "carbon peaking", "tier": "tier1", "source_id": "T1-01", "source_name": "中国政府网", "url": "https://english.www.gov.cn/", "snippet": "官方气候承诺固定译法" }
       ]

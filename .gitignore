@@ -54,5 +54,9 @@ secrets.properties
 # 若你想把项目决策记录一并公开，删掉下面这一行即可。
 .workbuddy-ai/
 
+# ---------- 本地工具（体积大，各自按 README 自行下载，不进仓库）----------
+tools/*.exe
+tools/cloudflared*
+
 # ---------- 后续采集的语料体积大，按需取消注释 ----------
 # ml/corpus/

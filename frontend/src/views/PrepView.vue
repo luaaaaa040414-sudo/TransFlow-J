@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { analyzeTerm, fetchAuthority } from '../api/modules'
 
@@ -9,20 +9,40 @@ const loading = ref(false)
 const authLoading = ref(false)
 const result = ref(null)
 const authority = ref(null)
+let revision = 0
+watch([term, context], () => {
+  revision += 1
+  result.value = null
+  authority.value = null
+}, { flush: 'sync' })
 
 // 权威译文卡片的数据源：优先「仅取权威译文」的结果，其次查证结果里带回来的
 const auth = computed(() => authority.value || result.value?.authority || null)
 const authFound = computed(() => !!auth.value?.found)
+const authStatus = computed(() => ({
+  unavailable: '查询未完成，请重试', not_found: '本次未取得精确匹配',
+  local_evidence: '本地收录证据 · 请复核', partial: '已命中 · 补查未完成'
+}[auth.value?.lookup_status] || '待核验'))
+const authConflict = computed(() => {
+  const translations = new Set((auth.value?.also_from || []).map(row => row.translation?.trim().toLowerCase()))
+  return translations.size > 1 || result.value?.status === 'conflict'
+})
 
 const analyze = async () => {
   if (!term.value.trim()) {
     ElMessage.warning('请输入要查证的词语')
     return
   }
+  if (loading.value || authLoading.value) return
+  const requestRevision = revision
   loading.value = true
   authority.value = null
+  result.value = null
   try {
-    result.value = (await analyzeTerm(term.value.trim(), context.value))?.data || null
+    const response = await analyzeTerm(term.value.trim(), context.value)
+    if (requestRevision === revision) result.value = response?.data || null
+  } catch {
+    // 请求拦截器已显示错误；不保留上一次查询的结果。
   } finally {
     loading.value = false
   }
@@ -33,9 +53,15 @@ const onlyAuthority = async () => {
     ElMessage.warning('请输入要查证的词语')
     return
   }
+  if (loading.value || authLoading.value) return
+  const requestRevision = revision
   authLoading.value = true
+  authority.value = null
   try {
-    authority.value = (await fetchAuthority(term.value.trim()))?.data || null
+    const response = await fetchAuthority(term.value.trim())
+    if (requestRevision === revision) authority.value = response?.data || null
+  } catch {
+    // 请求拦截器已显示错误。
   } finally {
     authLoading.value = false
   }
@@ -78,8 +104,8 @@ const langTag = (l) => (l === 'en' ? 'success' : l === 'zh-fallback' ? 'warning'
         title="输入词语 → 系统判定领域 → 按「一级源优先，找不到再降二级，三级一律不用」直取权威信源，直接显示该词的官方英文译名与出处。" />
       <div class="prep__row">
         <el-input v-model="term" placeholder="要查证的词语，例如：水力压裂 / 碳中和 / 沉积岩" style="width: 380px" @keyup.enter="analyze" />
-        <el-button type="primary" :loading="loading" @click="analyze">查证（判领域 + 取译文）</el-button>
-        <el-button :loading="authLoading" @click="onlyAuthority">仅取权威译文</el-button>
+        <el-button type="primary" :loading="loading" :disabled="authLoading" @click="analyze">查证（判领域 + 取译文）</el-button>
+        <el-button :loading="authLoading" :disabled="loading" @click="onlyAuthority">仅取权威译文</el-button>
       </div>
       <el-input v-model="context" type="textarea" :rows="3"
         placeholder="（可选）粘贴该词语所在的句子或段落，能显著提升领域判定准确度" />
@@ -91,11 +117,15 @@ const langTag = (l) => (l === 'en' ? 'success' : l === 'zh-fallback' ? 'warning'
         <div class="prep__auth-head">
           <span class="card-title">权威译文</span>
           <el-tag v-if="authFound" type="success" size="small" effect="dark">一级源 · {{ auth.source_name }}</el-tag>
-          <el-tag v-else type="info" size="small">一级源未收录</el-tag>
+          <el-tag v-else type="warning" size="small">{{ authStatus }}</el-tag>
         </div>
       </template>
 
       <template v-if="authFound">
+        <el-alert v-if="authConflict" type="warning" :closable="false" show-icon
+          title="存在不同一级译法：以下是候选证据，并非唯一推荐译文，请结合学科与上下文裁定。" />
+        <el-alert v-if="['partial', 'local_evidence'].includes(auth.lookup_status)" type="warning"
+          :closable="false" show-icon :title="auth.reason" />
         <div class="prep__trans">
           <div class="prep__trans-cn">{{ auth.term }}</div>
           <div class="prep__trans-arrow">→</div>
@@ -122,24 +152,40 @@ const langTag = (l) => (l === 'en' ? 'success' : l === 'zh-fallback' ? 'warning'
           <el-table :data="auth.also_from" size="small" border>
             <el-table-column prop="translation" label="英文译名" min-width="200" />
             <el-table-column prop="termbase" label="术语库" min-width="200" />
+            <el-table-column prop="subject" label="学科" min-width="180" />
+            <el-table-column label="原文证据" min-width="130">
+              <template #default="{ row }">
+                <el-link :href="row.detail_url" target="_blank" type="primary">核验此条目</el-link>
+              </template>
+            </el-table-column>
           </el-table>
         </div>
 
         <div class="prep__actions">
           <el-link :href="auth.detail_url" target="_blank" type="primary">
-            打开术语在线原始条目（{{ auth.termbase }}）
+            打开权威信源原文（{{ auth.termbase }}）
           </el-link>
         </div>
       </template>
 
       <template v-else>
-        <el-alert type="warning" :closable="false" show-icon :title="auth.reason || '一级源未收录该词'" />
+        <el-alert type="warning" :closable="false" show-icon :title="auth.reason || '本次未取得可用证据，请继续核验一级源'" />
         <div class="prep__actions">
           <el-link :href="auth.homepage" target="_blank" type="info">打开术语在线首页</el-link>
           <span class="prep__gap"></span>
           <el-link :href="auth.search_url" target="_blank" type="info">在术语在线站内检索「{{ auth.term }}」</el-link>
         </div>
       </template>
+      <el-collapse v-if="(auth.checks || []).length" class="prep__checks">
+        <el-collapse-item title="查看本次检索诊断（接口、网络与覆盖范围）" name="checks">
+          <p>{{ auth.coverage || '在线补查范围：术语在线审定库及标准库；其他一级源仍需核验' }}</p>
+          <div v-for="(check, index) in auth.checks" :key="index">
+            <el-tag size="small" :type="check.status === 'ok' ? 'success' : 'warning'">{{ check.status }}</el-tag>
+            {{ check.endpoint || check.url }}
+            <p v-if="check.message">{{ check.message }}</p>
+          </div>
+        </el-collapse-item>
+      </el-collapse>
     </el-card>
 
     <template v-if="result">

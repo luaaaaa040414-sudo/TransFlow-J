@@ -31,7 +31,7 @@ public class TermPrepService {
 
     /** 术语查证主入口 */
     public Map<String, Object> analyze(String term, String context) {
-        String q = term == null ? "" : term.trim();
+        String q = AuthorityLookupService.normalizeTerm(term);
         if (q.isEmpty()) {
             return Maps.of("term", "", "status", "invalid", "message", "请输入要查证的词语");
         }
@@ -47,44 +47,59 @@ public class TermPrepService {
         Map<String, Object> auth = authority.lookup(q);
         result.put("authority", auth);
 
-        // 3. 确定该词的英文译名：优先术语库一级源译法，其次术语在线的官方译名。
+        // 3. 确定该词的英文译名：优先「术语在线」的国家审定译名，其次本地术语库一级源译法。
         //    各网站检索词不同——中文站用中文原词，英文站（中国政府网英文版、教育部英文官网等）
         //    必须用英文译名，否则必然搜不到。所以要先拿到英文译名再构造检索深链。
-        String enTerm = firstEnglishFromTermbase(q);
-        if (enTerm.isEmpty() && Boolean.TRUE.equals(auth.get("found"))) {
+        String enTerm = "";
+        if (Boolean.TRUE.equals(auth.get("found"))) {
             enTerm = String.valueOf(auth.get("translation"));
+        }
+        if (enTerm.isEmpty()) {
+            enTerm = firstEnglishFromTermbase(q);
         }
         result.put("en_term", enTerm.isEmpty() ? null : enTerm);
 
-        // 4. 本地术语库（若已收录，给出完整分级证据链）
+        // 4. 本地术语库（若已收录，给出完整分级证据链；同时并入术语在线的国家审定译名一起裁决）
         Map<String, Object> hit = lookupTermbase(q, enTerm);
         if (hit != null) {
+            mergeAuthorityEvidence(hit, auth);
+            // 在线补查失败不是“一级源无覆盖”，不得因此自动采用二级证据。
+            if (!Boolean.TRUE.equals(auth.get("search_complete"))
+                    && "confirmed".equals(hit.get("status"))) {
+                hit.put("status", "pending");
+                hit.put("translation", null);
+                hit.put("verdict_label", "一级源查询未完成 · 待查证");
+                hit.put("reason", "二级源虽交叉一致，但一级源在线查询未完成，暂不能降级定稿");
+            }
+            // 本地已有其他一级源证据时，权威卡片不能继续显示“找不到”。
+            if (!Boolean.TRUE.equals(auth.get("found"))) {
+                Map<String, Object> local = localAuthority(hit, q, auth);
+                if (local != null) result.put("authority", local);
+            }
             result.putAll(hit);
             result.put("source", "termbase");
             result.put("policy", policy());
             return result;
         }
 
-        // 5. 术语库未收录，但一级源命中 → 直接锁定为该词的定译
+        // 5. 术语库未收录但一级源命中 → 全部真实条目统一裁决，不忽略同词异译
         if (Boolean.TRUE.equals(auth.get("found"))) {
-            String en = String.valueOf(auth.get("translation"));
-            result.put("status", "locked");
-            result.put("verdict_label", "锁定 · 一级源定译");
-            result.put("translation", en);
-            result.put("evidence", evidenceFromAuthority(auth, enTerm));
-            result.put("reason", "一级源「全国术语在线」(T1-06) 已收录，出处《"
-                    + auth.get("termbase") + "》，依策略可直接作为定译依据");
+            List<Map<String, Object>> evidence = evidenceFromAuthority(auth, enTerm);
+            result.putAll(adjudicate(evidence));
+            result.put("evidence", evidence);
             result.put("policy", policy());
             result.put("source", "authority");
             return result;
         }
 
-        // 6. 两级都没有 → 生成分级查证方案（三级源一律不用）
+        // 6. 本次自动查询未取到证据 → 继续核验其他一级源，不能断言所有一级源均未收录
         result.put("status", "pending");
         result.put("verdict_label", "待查证");
         result.put("translation", null);
         result.put("evidence", Collections.emptyList());
-        result.put("message", "一级源未收录该词，已按领域生成分级查证方案，请降级逐级核查（二级源需两个独立来源一致）");
+        result.put("message", Boolean.TRUE.equals(auth.get("search_complete"))
+                ? "本次自动核查未取得译文，请先继续核验其他一级源；只有确认一级源无覆盖，才可采用两个独立二级源的一致译法"
+                : "一级源在线查询未完成，不能判断是否收录；请重试或在官网核验，不应直接降级采用二级源");
         result.put("searchPlan", buildSearchPlan(q, enTerm));
         result.put("policy", policy());
         result.put("source", "plan");
@@ -103,7 +118,7 @@ public class TermPrepService {
             return "";
         }
         for (JsonNode t : root.path("terms")) {
-            if (!t.path("term").asText().equalsIgnoreCase(term)) {
+            if (!AuthorityLookupService.normalizeTerm(t.path("term").asText()).equalsIgnoreCase(term)) {
                 continue;
             }
             String fallback = "";
@@ -124,63 +139,58 @@ public class TermPrepService {
         return "";
     }
 
-    /** 把一级源结果转成与术语库同构的证据行，便于前端统一渲染 */
+    /** 将每一条真实检索条目分别转成证据，不把聚合总览的译名与库名按下标猜配。 */
+    @SuppressWarnings("unchecked")
     private List<Map<String, Object>> evidenceFromAuthority(Map<String, Object> auth, String enTerm) {
         List<Map<String, Object>> list = new ArrayList<>();
-        String detail = String.valueOf(auth.get("detail_url"));
-        Map<String, Object> row = Maps.newMap();
-        row.put("text", String.valueOf(auth.get("translation")));
-        row.put("tier", "tier1");
-        row.put("source_id", String.valueOf(auth.get("source_id")));
-        row.put("source_name", String.valueOf(auth.get("source_name")));
-        row.put("termbase", String.valueOf(auth.get("termbase")));
-        row.put("url", detail);
-        row.put("snippet", String.valueOf(auth.get("definition")));
-        // 术语在线走「原始条目」直链，而不是站内检索
-        row.putAll(Maps.of(
-                "search_url", detail,
-                "search_kind", "site-detail",
-                "search_query", String.valueOf(auth.get("term")),
-                "search_lang", "zh",
-                "search_label", "术语在线原始条目",
-                "search_probe", "接口直取，非检索页"));
-        list.add(row);
-
         Object also = auth.get("also_from");
-        if (also instanceof List) {
-            for (Object o : (List<?>) also) {
-                if (!(o instanceof Map)) {
-                    continue;
-                }
-                @SuppressWarnings("unchecked")
-                Map<String, Object> m = (Map<String, Object>) o;
-                String en = String.valueOf(m.get("translation"));
-                String tb = String.valueOf(m.get("termbase"));
-                if (en.isEmpty() || "null".equals(en)) {
-                    continue;
-                }
-                if (en.equals(String.valueOf(auth.get("translation")))) {
-                    continue;
-                }
-                Map<String, Object> r2 = Maps.newMap();
-                r2.put("text", en);
-                r2.put("tier", "tier1");
-                r2.put("source_id", String.valueOf(auth.get("source_id")));
-                r2.put("source_name", String.valueOf(auth.get("source_name")));
-                r2.put("termbase", tb);
-                r2.put("url", detail);
-                r2.put("snippet", "术语库《" + tb + "》给出的译名");
-                r2.putAll(Maps.of(
-                        "search_url", detail,
-                        "search_kind", "site-detail",
-                        "search_query", String.valueOf(auth.get("term")),
-                        "search_lang", "zh",
-                        "search_label", "术语在线原始条目",
-                        "search_probe", "接口直取，非检索页"));
-                list.add(r2);
-            }
+        List<Map<String, Object>> entries = also instanceof List
+                ? (List<Map<String, Object>>) also : Collections.singletonList(auth);
+        if (entries.isEmpty()) entries = Collections.singletonList(auth);
+        for (Map<String, Object> entry : entries) {
+            String detail = String.valueOf(entry.get("detail_url"));
+            list.add(Maps.of("text", entry.get("translation"), "tier", "tier1",
+                    "source_id", auth.get("source_id"), "source_name", auth.get("source_name"),
+                    "termbase", entry.get("termbase"), "url", detail,
+                    "snippet", entry.get("definition"), "search_url", detail,
+                    "search_kind", "site-detail", "search_query", entry.get("term"),
+                    "search_lang", "zh", "search_label", "术语在线原始条目",
+                    "search_probe", "接口精确检索，原始条目逐条核验"));
         }
         return list;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void mergeAuthorityEvidence(Map<String, Object> hit, Map<String, Object> auth) {
+        if (!Boolean.TRUE.equals(auth.get("found"))) return;
+        List<Map<String, Object>> evidence = (List<Map<String, Object>>) hit.get("evidence");
+        for (Map<String, Object> row : evidenceFromAuthority(auth, "")) {
+            boolean duplicate = false;
+            for (Map<String, Object> old : evidence) {
+                if (row.get("url").equals(old.get("url")) && row.get("text").equals(old.get("text"))) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) evidence.add(row);
+        }
+        hit.putAll(adjudicate(evidence));
+    }
+
+    /** 本地收录的一级证据与实时查询分开标注，不冒充本次在线取证。 */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> localAuthority(Map<String, Object> hit, String q, Map<String, Object> remote) {
+        List<Map<String, Object>> evidence = (List<Map<String, Object>>) hit.get("evidence");
+        List<Map<String, Object>> t1 = filter(evidence, "tier1");
+        if (t1.isEmpty()) return null;
+        Map<String, Object> row = t1.get(0);
+        return Maps.of("found", true, "term", q, "translation", row.get("text"),
+                "source_id", row.get("source_id"), "source_name", row.get("source_name"),
+                "termbase", row.get("source_name"), "definition", row.get("snippet"),
+                "detail_url", row.get("url"), "site", row.get("url"),
+                "lookup_status", "local_evidence", "search_complete", remote.get("search_complete"),
+                "checks", remote.get("checks"), "online_lookup", remote,
+                "reason", "本地术语库已收录该一级源证据，并非本次实时获取；请打开原文复核。在线补查：" + remote.get("reason"));
     }
 
     /** 领域判定：对 term + context 做关键词打分 */
@@ -234,7 +244,7 @@ public class TermPrepService {
             return null;
         }
         for (JsonNode t : root.path("terms")) {
-            if (!t.path("term").asText().equalsIgnoreCase(term)) {
+            if (!AuthorityLookupService.normalizeTerm(t.path("term").asText()).equalsIgnoreCase(term)) {
                 continue;
             }
             List<Map<String, Object>> evidence = new ArrayList<>();

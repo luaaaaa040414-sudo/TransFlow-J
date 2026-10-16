@@ -1,5 +1,8 @@
 server:
   port: 8080
+  # 绑定所有网卡：多人协作时同组同学可用 http://<你的IP>:8080 直接访问接口，
+  # 不要写成 127.0.0.1，那样只有本机能连。
+  address: 0.0.0.0
   servlet:
     encoding:
       charset: UTF-8
@@ -16,6 +19,7 @@ transflow:
   # 数据目录：指向仓库根的 data，IDEA 运行时需改为绝对路径或软链
   data-dir: ../data
   # ML 服务（PyCharm 侧 FastAPI）地址，留空则走本地降级逻辑
+  # 若 ML 服务跑在另一台机器，改成 http://<那台机器IP>:8000
   ml-service-url: http://127.0.0.1:8000
 
 logging:

@@ -6,6 +6,8 @@ import { fetchDomains, fetchDomainDetail, fetchModels, styleTranslate } from '..
 const domains = ref([])
 const active = ref(null)
 const journals = ref([])
+const journalCount = ref(0)
+const loading = ref(false)
 const selected = ref(null)
 
 const models = ref([])
@@ -16,10 +18,14 @@ const translating = ref(false)
 const result = ref(null)
 
 const load = async () => {
-  domains.value = (await fetchDomains())?.data || []
+  try {
+    domains.value = (await fetchDomains())?.data || []
+  } catch (e) {
+    ElMessage.error('领域列表加载失败，请确认后端已启动')
+    return
+  }
   if (domains.value.length && !active.value) {
-    active.value = domains.value[0].domain
-    await select(active.value)
+    await select(domains.value[0].domain)
   }
 }
 
@@ -27,8 +33,21 @@ const select = async (domain) => {
   active.value = domain
   selected.value = null
   result.value = null
-  const detail = (await fetchDomainDetail(domain))?.data || {}
-  journals.value = detail.journals || []
+  loading.value = true
+  try {
+    const detail = (await fetchDomainDetail(domain))?.data || {}
+    journals.value = detail.journals || []
+    journalCount.value = detail.journal_count ?? journals.value.length
+    if (!journals.value.length) {
+      ElMessage.warning('该领域下暂无已配置期刊')
+    }
+  } catch (e) {
+    journals.value = []
+    journalCount.value = 0
+    ElMessage.error(`「${domain}」期刊列表加载失败：${e?.response?.status || ''} ${e?.message || ''}`)
+  } finally {
+    loading.value = false
+  }
 }
 
 const pick = (row) => {
@@ -95,12 +114,17 @@ onMounted(() => {
 
     <el-card shadow="never">
       <template #header>
-        <span class="card-title">权威期刊列表（点击某一行选定为翻译目标期刊）</span>
+        <span class="card-title">权威期刊列表</span>
+        <el-tag v-if="journals.length" size="small" type="info" effect="plain" class="count-tag">
+          共 {{ journalCount }} 本 · 点击某一行选定为翻译目标期刊
+        </el-tag>
+        <span v-else class="target-hint">点击某一行选定为翻译目标期刊</span>
       </template>
-      <el-table :data="journals" size="small" border stripe highlight-current-row
-        @row-click="pick" :current-row-key="selected?.name" row-key="name">
-        <el-table-column prop="name" label="期刊" min-width="260" />
-        <el-table-column prop="publisher_zh" label="出版方" width="180" />
+      <el-table v-loading="loading" :data="journals" size="small" border stripe highlight-current-row
+        @row-click="pick" :current-row-key="selected?.name" row-key="name" empty-text="该领域暂无已配置期刊">
+        <el-table-column prop="name" label="期刊" min-width="250" />
+        <el-table-column prop="subfield" label="学科方向" width="150" show-overflow-tooltip />
+        <el-table-column prop="publisher_zh" label="出版方" width="170" />
         <el-table-column label="影响力" width="90">
           <template #default="{ row }">
             <el-tag size="small" :type="tierTag(row.tier)">{{ row.tier }}</el-tag>
@@ -116,8 +140,8 @@ onMounted(() => {
             {{ row.collect_scope === 'fulltext' ? '可采集全文' : row.collect_scope === 'abstract_only' ? '仅公开摘要' : '仅元数据' }}
           </template>
         </el-table-column>
-        <el-table-column prop="site" label="站点" min-width="220" />
-        <el-table-column prop="note" label="备注" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="site" label="站点" min-width="210" />
+        <el-table-column prop="note" label="备注" min-width="150" show-overflow-tooltip />
       </el-table>
     </el-card>
 
@@ -177,6 +201,7 @@ onMounted(() => {
 .journals { display: flex; flex-direction: column; gap: 16px; }
 .domain-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .domain-chip { cursor: pointer; }
+.count-tag { margin-left: 8px; }
 .target-tag { margin-left: 8px; }
 .target-hint { margin-left: 8px; font-size: 12px; color: var(--el-text-color-secondary); }
 .trans-toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }

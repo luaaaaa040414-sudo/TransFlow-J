@@ -8,7 +8,10 @@
     cd ml
     pip install -r requirements.txt
     运行 app.py          # 等价于 python app.py
-    或命令行：uvicorn app:app --host 127.0.0.1 --port 8000
+    或命令行：uvicorn app:app --host 0.0.0.0 --port 8000
+
+监听 0.0.0.0 而非 127.0.0.1：本项目是多人协作，服务需在局域网内可访问，
+同组同学用你的局域网 IP 即可打开页面，不必非要在你这台机器上跑。
 
 接口一览：
     GET  /health           健康检查
@@ -116,4 +119,5 @@ def style_translate(req: StyleRequest):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=False)
+    # 绑定 0.0.0.0：局域网内其他同学也能访问（多人协作项目，不要用 127.0.0.1）
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)

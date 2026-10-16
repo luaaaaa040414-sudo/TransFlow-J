@@ -28,6 +28,7 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.text.Normalizer;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.security.cert.Certificate;
@@ -44,15 +45,9 @@ import java.util.Map;
  * 权威译文直取：不经过搜索引擎，直接调用「全国科学技术名词审定委员会·术语在线」(termonline.cn)
  * 的站内检索接口，拿到该中文词对应的官方英文译名，供译前准备页「显示」译文。
  *
- * 依据信源分级：termonline.cn = T1-06 一级源，命中即可直接作为定译依据。
- *
- * 站内接口（公开、无鉴权）：
- *   GET /main-serve/business/tm/tmWord/drawWordSearch?term={中文词}
- *        → 单条术语详情：cn / en / definition / source(术语库) / subjectFullName / publishYear / wordNumber / id
- *   GET /main-serve/business/tm/tmWord/standardSearch?term={中文词}&match=2&pageNo=1&pageSize=20&baseId=...07
- *        → 多库总览：overView.en[] / overView.source[]，用于列出「有哪些术语库给出过译名」
- *
- * 网络不可达或站点改版时，返回 found=false + 明确原因，由上层降级到分级查证方案，绝不臆造译文。
+ * 仅接受正式审定库及标准库中的精确匹配条目，不将站内其他来源/百科视为一级证据。
+ * drawWordSearch 单条推荐 → allSearch 审定库精确检索（match=1）→ standardSearch 标准库补查。
+ * 每条证据保留独立的原文链接。网络、协议、分页失败与有效空结果分开报告。
  */
 @Service
 public class AuthorityLookupService {
@@ -80,8 +75,8 @@ public class AuthorityLookupService {
         } else {
             factory = new SimpleClientHttpRequestFactory();
         }
-        factory.setConnectTimeout(4000);
-        factory.setReadTimeout(12000);
+        factory.setConnectTimeout(2500);
+        factory.setReadTimeout(5000);
 
         // 若运行环境通过 http(s)_proxy 环境变量指定了出口代理（容器 / 企业网常见），
         // 则让本服务的对外请求也走它；普通本机直连环境没有该变量，自动直连，无需配置。
@@ -93,133 +88,188 @@ public class AuthorityLookupService {
         this.rest = new RestTemplate(factory);
     }
 
-    /**
-     * 查一个中文词的权威英文译名。
-     *
-     * @param term 待查证的中文词
-     * @return found=true 时含 translation(英文译名) / termbase / subject / definition 等；
-     *         found=false 时含 reason，供上层降级。
-     */
+    // 正式审定库与标准库才可作为一级证据。站内“其他来源库”包含百科，不能按域名一概提级。
+    private static final String APPROVED_DB = "00000000000000000000000000000000";
+    private static final String STANDARD_DB = "00000000000000000000000000000007";
+    private static final int PAGE_SIZE = 50;
+    private static final int MAX_PAGES = 3;
+
+    /** 供无网络回归测试注入 HTTP 客户端；生产仍使用上面的安全网络配置。 */
+    AuthorityLookupService(RestTemplate rest) {
+        this.rest = rest;
+    }
+
+    /** 统一处理复制/PDF 选词中的全角空格、零宽字符与中文断行，不改写词义。 */
+    static String normalizeTerm(String term) {
+        if (term == null) return "";
+        return Normalizer.normalize(term, Normalizer.Form.NFKC)
+                .replaceAll("[\\p{Cf}]", "")
+                .replaceAll("[\\s\\p{Z}]+", " ")
+                .replaceAll("(?<=[\\p{IsHan}]) +(?=[\\p{IsHan}])", "").trim();
+    }
+
     public Map<String, Object> lookup(String term) {
-        String q = term == null ? "" : term.trim();
+        String q = normalizeTerm(term);
         if (q.isEmpty()) {
-            return Maps.of("found", false, "term", "", "reason", "未提供待查词语");
+            return Maps.of("found", false, "term", "", "lookup_status", "invalid", "reason", "未提供待查词语");
+        }
+        // 所有诊断信息为本次请求局部变量，避免并发用户间串词或串错误。
+        List<Map<String, Object>> trace = new ArrayList<>();
+        List<Map<String, Object>> candidates = new ArrayList<>();
+        JsonNode draw = getJson(api("drawWordSearch", q, 1, false), trace);
+        if (draw != null && draw.path("result").isObject()) {
+            JsonNode row = draw.path("result");
+            String db = row.path("dbId").asText("");
+            if ("0".equals(db) || APPROVED_DB.equals(db)) addCandidate(row, q, false, candidates);
         }
 
-        Map<String, Object> detail = fetchDetail(q);
-        if (detail != null) {
-            detail.put("found", true);
-            detail.put("engine", "termonline.cn");
-            detail.put("tier", "tier1");
-            detail.put("source_id", SOURCE_ID);
-            detail.put("source_name", SOURCE_NAME);
-            // 多库总览（失败不影响主结果）
-            detail.put("also_from", fetchSourceOverview(q));
-            return detail;
+        // 推荐接口可能返回空值或没有英文的条目；仍须用官网正式检索接口查完整结果。
+        boolean complete = search(q, false, candidates, trace);
+        if (candidates.isEmpty()) {
+            complete = search(q, true, candidates, trace) && complete;
         }
-
-        Map<String, Object> miss = Maps.newMap();
-        miss.put("found", false);
-        miss.put("term", q);
-        miss.put("engine", "termonline.cn");
-        miss.put("tier", "tier1");
-        miss.put("source_id", SOURCE_ID);
-        miss.put("source_name", SOURCE_NAME);
-        miss.put("reason", "一级源「术语在线」未收录该词，按策略降级到二级源交叉核查（三级源一律不用）");
-        miss.put("homepage", SITE + "/");
-        miss.put("search_url", SITE + "/search?searchText=" + enc(q));
-        return miss;
+        Map<String, Object> out = Maps.of("found", !candidates.isEmpty(), "term", q,
+                "engine", "termonline.cn", "tier", "tier1", "source_id", SOURCE_ID,
+                "source_name", SOURCE_NAME, "homepage", SITE + "/",
+                "search_url", SITE + "/search?searchText=" + enc(q), "checks", trace,
+                "search_complete", complete, "coverage", "自动核查术语在线审定库（无命中时补查标准库），其他一级源仍需核验");
+        if (!candidates.isEmpty()) {
+            out.putAll(candidates.get(0));
+            out.put("also_from", candidates);
+            out.put("lookup_status", complete ? "found" : "partial");
+            out.put("reason", complete ? "已取得与查询词精确匹配的一级源原始条目"
+                    : "已取得一级源证据，但补充检索未完成；不能据此认定已覆盖所有译法");
+        } else {
+            out.put("lookup_status", complete ? "not_found" : "unavailable");
+            out.put("reason", complete
+                    ? "本次在术语在线审定库及标准库未取得精确匹配的英文条目，不代表其他一级源未收录；请继续核验一级源"
+                    : "权威站点查询未完成（网络、接口或检索范围受限），无法判断是否收录；请重试或打开官网核验，不能据此降级定稿");
+        }
+        return out;
     }
 
-    /** 单条术语详情 */
-    private Map<String, Object> fetchDetail(String term) {
-        String url = SITE + "/main-serve/business/tm/tmWord/drawWordSearch?term=" + enc(term);
-        JsonNode root = getJson(url, SITE + "/");
-        if (root == null) {
-            return null;
-        }
-        JsonNode r = root.path("result");
-        if (r.isMissingNode() || r.isNull()) {
-            return null;
-        }
-        String cn = r.path("cn").asText("");
-        String en = r.path("en").asText("");
-        if (cn.isEmpty() || en.isEmpty()) {
-            return null;
-        }
-
-        Map<String, Object> m = Maps.newMap();
-        m.put("term", cn);
-        m.put("translation", en);
-        m.put("variants", splitVariants(en));
-        m.put("definition", r.path("definition").asText(""));
-        m.put("termbase", r.path("source").asText(""));
-        m.put("subject", r.path("subjectFullName").asText(""));
-        m.put("subject_name", r.path("subjectName").asText(""));
-        m.put("publish_year", r.path("publishYear").asText(""));
-        m.put("word_number", r.path("wordNumber").asText(""));
-        m.put("also_name", r.path("alsoName").asText(""));
-        m.put("tw", r.path("tw").isNull() ? "" : r.path("tw").asText(""));
-
-        String id = r.path("id").asText("");
-        m.put("site", SITE);
-        m.put("detail_url", SITE + "/wordDetail?termName=" + enc(cn) + "&subject=" + enc(id) + "&base=1");
-        m.put("quote", joinQuote(r.path("quote1").asText(""), r.path("quote2").asText("")));
-        return m;
+    private String api(String endpoint, String q, int page, boolean standard) {
+        return SITE + "/main-serve/business/tm/tmWord/" + endpoint + "?term=" + enc(q)
+                + ("drawWordSearch".equals(endpoint) ? "" : "&match=1&sources=&pubYears=&pageSize="
+                + PAGE_SIZE + "&pageNo=" + page + "&baseId=" + (standard ? STANDARD_DB : "1"));
     }
 
-    /** 多术语库总览：有哪些库给过译名（用于「权威翻译证明」的横向罗列） */
-    private List<Map<String, Object>> fetchSourceOverview(String term) {
-        String url = SITE + "/main-serve/business/tm/tmWord/standardSearch?term=" + enc(term)
-                + "&match=2&sources=&pubYears=&pageSize=20&pageNo=1"
-                + "&baseId=00000000000000000000000000000007";
-        JsonNode root = getJson(url, SITE + "/");
-        List<Map<String, Object>> list = new ArrayList<>();
-        if (root == null) {
-            return list;
-        }
-        JsonNode ov = root.path("result").path("overView");
-        JsonNode ens = ov.path("en");
-        JsonNode srcs = ov.path("source");
-        int n = Math.max(ens.size(), srcs.size());
-        for (int i = 0; i < n; i++) {
-            String en = i < ens.size() && !ens.get(i).isNull() ? ens.get(i).asText("") : "";
-            String src = i < srcs.size() && !srcs.get(i).isNull() ? srcs.get(i).asText("") : "";
-            // 只保留真正给出译名的条目；仅有库名无译名的（如「建筑学名词」）不展示
-            if (en.isEmpty()) {
-                continue;
+    /** match=1 是官网精确检索；分页有界，达到上限则明确标记未完成而不是谎报未收录。 */
+    private boolean search(String q, boolean standard, List<Map<String, Object>> candidates,
+                           List<Map<String, Object>> trace) {
+        String endpoint = standard ? "standardSearch" : "allSearch";
+        for (int page = 1; page <= MAX_PAGES; page++) {
+            String url = api(endpoint, q, page, standard);
+            JsonNode root = getJson(url, trace);
+            if (root == null) return false;
+            JsonNode result = root.path("result");
+            // 官网同样会在全空响应后初始化库列表并重查一次，避免暂时空响应导致漏查。
+            if (!standard && page == 1 && emptyGroups(result)) {
+                getJson(SITE + "/main-serve/business/tm/tmDatabase/listFront?pageNo=1&pageSize=10", trace);
+                root = getJson(url, trace);
+                if (root == null) return false;
+                result = root.path("result");
             }
-            list.add(Maps.of("translation", en, "termbase", src));
+            JsonNode group = standard ? result.path("standardVO") : approvedGroup(result);
+            if (!group.isObject() || !group.path("tmWordList").isArray()
+                    || !group.path("totalRecords").canConvertToInt()) {
+                trace.add(Maps.of("endpoint", endpoint, "status", "protocol_error", "message", "检索响应结构不完整"));
+                return false;
+            }
+            for (JsonNode row : group.path("tmWordList")) addCandidate(row, q, standard, candidates);
+            int total = group.path("totalRecords").asInt();
+            if (total < 0) return false;
+            if (page * PAGE_SIZE >= total) return true;
+            if (group.path("tmWordList").size() == 0) break;
         }
-        return list;
+        trace.add(Maps.of("endpoint", endpoint, "status", "incomplete", "message", "结果分页尚未取全，需官网继续核验"));
+        return false;
     }
 
-    /** 带 UA / Referer 抓 JSON；失败返回 null（不抛异常，交由上层降级） */
-    private JsonNode getJson(String url, String referer) {
+    private JsonNode approvedGroup(JsonNode result) {
+        for (JsonNode group : result.path("searchResult")) {
+            if (APPROVED_DB.equals(group.path("id").asText())) return group.path("result");
+        }
+        return mapper.createObjectNode();
+    }
+
+    private boolean emptyGroups(JsonNode result) {
+        JsonNode groups = result.path("searchResult");
+        if (!groups.isArray() || groups.size() == 0) return false;
+        for (JsonNode group : groups) {
+            if (group.path("result").path("totalRecords").asInt(-1) != 0) return false;
+        }
+        return true;
+    }
+
+    private void addCandidate(JsonNode row, String q, boolean standard, List<Map<String, Object>> out) {
+        String cn = clean(row.path(standard ? "cnName" : "cn").asText(""));
+        String en = clean(row.path(standard ? "enName" : "en").asText(""));
+        // 不能把相关词/包含该词的长词直接锁定为本词，也不把无英文条目当作翻译证据。
+        if (!normalizeTerm(cn).equalsIgnoreCase(q) || en.isEmpty()) return;
+        String id = row.path("id").asText("");
+        String source = standard ? clean(row.path("standardCode").asText("") + " "
+                + row.path("standardName").asText("")) : clean(row.path("source").asText(""));
+        if (id.isEmpty() || source.isEmpty()) return;
+        String db = standard ? STANDARD_DB : APPROVED_DB;
+        String detail = SITE + (standard ? "/wordDetailByStandard" : "/wordDetail")
+                + "?termName=" + enc(cn) + "&subject=" + enc(id) + "&base=" + db;
+        for (Map<String, Object> existing : out) {
+            if (detail.equals(existing.get("detail_url"))) return;
+        }
+        out.add(Maps.of("term", cn, "translation", en, "variants", splitVariants(en),
+                "definition", clean(row.path("definition").asText("")), "termbase", source,
+                "subject", clean(row.path("subjectFullName").asText(row.path("subjectName").asText(""))),
+                "subject_name", clean(row.path("subjectName").asText("")),
+                "publish_year", row.path("publishYear").asText(""),
+                "word_number", row.path(standard ? "termCode" : "wordNumber").asText(""),
+                "also_name", clean(row.path("alsoName").asText("")), "tw", clean(row.path("tw").asText("")),
+                "site", SITE, "detail_url", detail, "database_id", db,
+                "quote", joinQuote(clean(row.path("quote1").asText("")), clean(row.path("quote2").asText("")))));
+    }
+
+    private String clean(String text) {
+        return text.replaceAll("<[^>]*>", "").replace("&nbsp;", " ").replace("&amp;", "&")
+                .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"")
+                .replaceAll("[\\s\\p{Z}]+", " ").trim();
+    }
+
+    /** 请求失败与有效的空结果分别记录，绝不把超时/拦截/改版描述成“未收录”。 */
+    private JsonNode getJson(String url, List<Map<String, Object>> trace) {
+        // 限制最坏网络耗时（6 次 × 单次连接/读取超时），低于前端请求超时。
+        long requests = trace.stream().filter(t -> t.containsKey("url")).count();
+        if (requests >= 6) {
+            trace.add(Maps.of("endpoint", "budget", "status", "incomplete", "message", "已达本次请求上限"));
+            return null;
+        }
+        Map<String, Object> check = Maps.of("url", url, "status", "error");
+        trace.add(check);
         try {
             HttpHeaders h = new HttpHeaders();
             h.set("User-Agent", UA);
-            h.set("Referer", referer);
+            h.set("Referer", SITE + "/");
             h.set("Accept", "application/json, text/plain, */*");
-            // 必须传 URI 对象：若传 String，RestTemplate 会把 URL 中已编码的 %E7 再编码成 %25E7，
-            // 服务端拿到的是字面量而非中文词，导致查不到结果。
-            URI uri = new URI(url);
-            ResponseEntity<String> resp =
-                    rest.exchange(uri, HttpMethod.GET, new HttpEntity<String>(h), String.class);
+            // 传 URI，避免 RestTemplate 把已编码中文二次编码。
+            ResponseEntity<String> resp = rest.exchange(new URI(url), HttpMethod.GET,
+                    new HttpEntity<String>(h), String.class);
             String body = resp.getBody();
-            if (body == null || body.trim().isEmpty()) {
-                return null;
-            }
+            if (body == null || body.trim().isEmpty()) throw new IOException("空响应");
             JsonNode root = mapper.readTree(body);
-            if (root.hasNonNull("code") && root.path("code").asInt() != 200) {
-                log.warn("[术语在线] 非 200 响应 url={} body={}", url, brief(body));
-                return null;
+            if (root == null || !root.isObject() || !root.has("result")
+                    || (root.hasNonNull("code") && root.path("code").asInt(-1) != 200)
+                    || (root.has("success") && !root.path("success").asBoolean())) {
+                throw new IOException("接口状态或响应格式异常: " + brief(body));
             }
-            if (!root.hasNonNull("result")) {
-                log.warn("[术语在线] 响应缺少 result 字段 url={} body={}", url, brief(body));
-            }
+            check.put("status", "ok");
             return root;
         } catch (Exception e) {
+            String message = e.toString();
+            String hint = message.contains("SSL") || message.contains("PKIX")
+                    ? "HTTPS 证书校验失败；请检查系统可信根或配置可信 CA 包，勿关闭证书校验。"
+                    : message.toLowerCase(java.util.Locale.ROOT).contains("timed out")
+                    ? "权威站点连接或读取超时，请稍后重试。" : "权威站点请求或响应异常，请重试或官网核验。";
+            check.put("message", hint);
+            check.put("error_detail", message);
             log.warn("[术语在线] 请求失败 url={} err={}", url, e.toString());
             return null;
         }
@@ -303,29 +353,41 @@ public class AuthorityLookupService {
     }
 
     /**
-     * 构建 HTTPS 信任链：在 JDK 默认信任库之外，额外并入系统 CA 包
-     * （NODE_EXTRA_CA_CERTS / SSL_CERT_FILE 指向的 PEM）。
-     * 企业代理或容器环境常在此处存放自签根证书；普通本机无该变量时直接返回 null，走 JDK 默认校验。
-     * 注意：这只是「增加可信来源」，不会关闭证书校验。
+     * 默认 JDK 信任库 + Windows 系统可信根 + 可选 PEM，保持证书链和域名校验。
+     * 老 JDK 的 CA 库可能无法验证浏览器已经信任的官网证书，因此仅有 PEM 适配还不够。
+     * 使用 Java 官方 SunMSCAPI 的 Windows-ROOT，不导入远程自签证书、不改全局信任库。
      */
     private SSLSocketFactory buildSslSocketFactory() {
-        String pem = System.getenv("NODE_EXTRA_CA_CERTS");
-        if (isBlank(pem)) {
-            pem = System.getenv("SSL_CERT_FILE");
-        }
-        if (isBlank(pem)) {
-            return null;
-        }
-        File f = new File(pem.trim());
-        if (!f.isFile()) {
-            return null;
-        }
         try {
-            X509TrustManager def = defaultTrustManager();
-            X509TrustManager extra = pemTrustManager(f);
+            X509TrustManager trusted = defaultTrustManager();
+            boolean enhanced = false;
+            if (System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).startsWith("windows")) {
+                try {
+                    KeyStore windows = KeyStore.getInstance("Windows-ROOT");
+                    windows.load(null, null);
+                    TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    tmf.init(windows);
+                    trusted = new CompositeTrustManager(trusted, firstX509(tmf));
+                    enhanced = true;
+                    log.info("[术语在线] 已并入 Windows 系统可信根证书（保留 HTTPS 校验）");
+                } catch (Exception e) {
+                    log.warn("[术语在线] 无法读取 Windows 可信根，继续使用 JDK 信任库：{}", e.toString());
+                }
+            }
+            String pem = System.getenv("NODE_EXTRA_CA_CERTS");
+            if (isBlank(pem)) pem = System.getenv("SSL_CERT_FILE");
+            if (!isBlank(pem)) {
+                try {
+                    trusted = new CompositeTrustManager(trusted, pemTrustManager(new File(pem.trim())));
+                    enhanced = true;
+                    log.info("[术语在线] 已并入系统 CA 包：{}", pem);
+                } catch (Exception e) {
+                    log.warn("[术语在线] 额外 CA 包加载失败，保留现有信任链：{}", e.toString());
+                }
+            }
+            if (!enhanced) return null;
             SSLContext ctx = SSLContext.getInstance("TLS");
-            ctx.init(null, new TrustManager[]{new CompositeTrustManager(def, extra)}, new SecureRandom());
-            log.info("[术语在线] 已并入系统 CA 包以增强 HTTPS 信任链：{}", f.getPath());
+            ctx.init(null, new TrustManager[]{trusted}, new SecureRandom());
             return ctx.getSocketFactory();
         } catch (Exception e) {
             log.warn("[术语在线] 增强信任链构建失败，回退 JDK 默认信任库：{}", e.toString());
