@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "url": "node ../scripts/dev-url.mjs",
-    "tunnel": "node ../scripts/tunnel.mjs"
+    "tunnel": "node ../scripts/tunnel.mjs",
+    "ngrok": "node ../scripts/ngrok.mjs"
   },
   "dependencies": {
     "axios": "^1.7.7",

@@ -47,14 +47,14 @@ node scripts/dev-url.mjs
 # 或在 frontend 下： npm run url
 ```
 
-输出示例：
+输出示例（**下面的 IP 只是示例，实际以你终端打印的为准**）：
 
 ```
-本机当前局域网 IP：192.168.16.50（网卡：WLAN）
+本机当前局域网 IP：<你的局域网 IP>（网卡：WLAN）
 
 【发给同事的地址】
-  前端页面　http://192.168.16.50:5173/
-  后端接口　http://192.168.16.50:8080/
+  前端页面　http://<你的局域网 IP>:5173/
+  后端接口　http://<你的局域网 IP>:8080/
 
 【服务自检】
   [√] 前端页面 :5173  正常（局域网可达）
@@ -62,6 +62,8 @@ node scripts/dev-url.mjs
 ```
 
 > ⚠️ **本机 IP 会随网络变化**（换 WiFi、重连路由器都会变）。Vite 启动时打印的 `Network` 地址是「启动那一刻」的，换网络后**不会自动更新** —— 所以换网络后要 **① 重启 vite ② 重新运行本脚本**，别再用旧 IP。
+>
+> 💡 **不需要在任何文件里改 IP**：`vite.config.js` 监听 `0.0.0.0`、`application.yml` 的 `server.address` 也是 `0.0.0.0`，代码里没有写死任何 IP。换网络后**只改"发给别人的那个地址"**，项目文件一个都不用动。
 
 **同学只需要前端地址** —— 页面里的 `/api` 请求会由前端开发服务器自动代理到后端，不需要单独访问 8080。
 
@@ -88,7 +90,56 @@ node scripts/dev-url.mjs
 
 **内网穿透：不在同一网络也能访问**
 
-本仓库已配好一键穿透脚本（用 Cloudflare 的免费快速隧道，**不用注册账号**）：
+提供两种方案，按「地址是否需要固定」选：
+
+| 方案 | 地址是否固定 | 需要注册 | 命令 |
+|---|---|---|---|
+| **ngrok 固定域名**（推荐） | ✅ **永久不变** | ✅ 免费账号 | `node scripts/ngrok.mjs` |
+| Cloudflare 快速隧道 | ❌ 每次重启都变 | ❌ 不用 | `node scripts/tunnel.mjs` |
+
+---
+
+**方案一：ngrok 固定域名（地址永久不变）**
+
+一次性准备：
+
+1. 注册免费账号：<https://dashboard.ngrok.com/signup>
+2. 复制 authtoken：<https://dashboard.ngrok.com/get-started/your-authtoken>
+3. 创建 dev domain：<https://dashboard.ngrok.com/domains>（免费版给 1 个，永久归属你的账号）
+4. 把 authtoken 写进 `tools/ngrok.yml`：
+
+```yaml
+version: "2"
+authtoken: <你的 authtoken>
+```
+
+5. 把 ngrok 放到 `tools/ngrok.exe`（或 `winget install Ngrok.Ngrok`）
+
+之后每次要用：
+
+```bash
+node scripts/ngrok.mjs
+# 或在 frontend 下： npm run ngrok
+```
+
+输出：
+
+```
+==========================================================
+  固定公网地址（重启后依然是这个）：
+  https://xxxxxxxxxxxx.ngrok-free.dev
+==========================================================
+```
+
+> **两个必须知道的坑**（脚本已自动处理，手动敲命令时要自己注意）：
+> 1. ngrok 检测到 `http_proxy` 环境变量会要求**付费计划**（`ERR_NGROK_9009`）—— 启动前必须清掉所有代理环境变量。
+> 2. 免费版**不能自定义子域名**（`ERR_NGROK_313`）—— 不要传 `--url` / `--domain`，ngrok 会自动用账号绑定的那个 dev domain。
+>
+> 另注：`tools/ngrok.yml` 含账号凭证，已在 `.gitignore` 中排除，**不要提交**。
+
+---
+
+**方案二：Cloudflare 快速隧道（免注册，地址会变）**
 
 ```bash
 # 一次性安装 cloudflared（Windows 自带 winget）
@@ -108,13 +159,13 @@ node scripts/tunnel.mjs
 ==========================================================
 ```
 
-把该地址发给同事即可 —— 他们用任何网络（家里、流量、别的 WiFi）都能打开。
-
 > - 保持运行脚本的那个窗口开着；关掉隧道就断了
 > - 后端接口由前端 `/api` 自动代理，**只需穿透前端一个端口**
-> - 地址是临时的，每次重启都会变，重新跑一次脚本拿新地址
+> - **地址是临时的，每次重启都会变**，重新跑一次脚本拿新地址（这是它相比 ngrok 的唯一劣势）
 > - 首次访问可能出现 Cloudflare 的提示页，点继续即可
 > - 原理：Vite 已配置 `allowedHosts: true`，否则 Vite 会拒绝来自该域名的请求
+
+> 两种方案都会把当前地址写入项目根目录的 `TUNNEL-URL.txt`，随时可查。
 
 ### B. 和同学一起写代码（用 Git，不是局域网 IP）
 

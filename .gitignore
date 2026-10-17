@@ -57,6 +57,9 @@ secrets.properties
 # ---------- 本地工具（体积大，各自按 README 自行下载，不进仓库）----------
 tools/*.exe
 tools/cloudflared*
+# ngrok 配置含 authtoken（账号凭证），绝不入库
+tools/ngrok.yml
+tools/*.zip
 
 # 内网穿透的临时公网地址（每次重启都会变，不进仓库）
 TUNNEL-URL.txt
