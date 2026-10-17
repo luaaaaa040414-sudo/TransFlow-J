@@ -14,21 +14,26 @@ const arbitrateModel = computed(() => byId(arbitrate.value))
 
 const capStars = (n) => '★'.repeat(n) + '☆'.repeat(Math.max(0, 5 - n))
 
+// 架构族：只有 arch_family 不同才算真正异构；老数据没有该字段时退回 architecture 文本
+const famOf = (m) => m.arch_family || m.architecture
+const famLabel = (m) => m.arch_family_label || m.architecture
+
 const heteroWarning = computed(() => {
   const a = draftModel.value
   const b = reviewModel.value
   if (!a || !b) return ''
   if (a.vendor === b.vendor) return `复核与主译同属「${a.vendor}」，同源模型容易同错，互校会失效，请换一家厂商`
-  if (a.architecture === b.architecture) return `复核与主译架构相同（${a.architecture}），建议改用不同架构以增强互校有效性`
+  if (famOf(a) === famOf(b)) return `复核与主译同属「${famLabel(a)}」架构族，同架构互校容易同错，建议换一个架构族`
   return ''
 })
 
 const load = async () => {
   const data = (await fetchModels())?.data || {}
   models.value = data.models || []
-  if (byId('deepseek-v3')) draft.value = 'deepseek-v3'
-  if (byId('gpt-4o')) review.value = 'gpt-4o'
-  if (byId('claude-3-5-sonnet')) arbitrate.value = 'claude-3-5-sonnet'
+  const d = data.default_roles || {}
+  draft.value = byId(d.draft) ? d.draft : (models.value[0]?.id || '')
+  review.value = byId(d.review) ? d.review : (models.value[1]?.id || '')
+  arbitrate.value = byId(d.arbitrate) ? d.arbitrate : (models.value[2]?.id || '')
 }
 
 // 与后端 /api/review/diff 对接；当前为静态演示数据
@@ -76,7 +81,9 @@ onMounted(load)
             <div v-if="draftModel" class="role-box__meta">
               <div class="role-box__caps">{{ capStars(draftModel.capability) }} {{ draftModel.capability_label }}</div>
               <div class="role-box__line">{{ draftModel.capability_desc }}</div>
-              <div class="role-box__line">厂商：{{ draftModel.vendor }} ｜ 架构：{{ draftModel.architecture }}</div>
+              <div class="role-box__line">厂商：{{ draftModel.vendor }}</div>
+              <div class="role-box__line">架构：{{ draftModel.architecture }}</div>
+              <div class="role-box__line">上下文：{{ draftModel.context }} ｜ API 名：<code>{{ draftModel.api_model }}</code></div>
               <el-tag size="small" :type="draftModel.configured ? 'success' : 'info'">
                 {{ draftModel.configured ? '已配置 Key' : '待配置 Key' }}
               </el-tag>
@@ -94,7 +101,9 @@ onMounted(load)
             <div v-if="reviewModel" class="role-box__meta">
               <div class="role-box__caps">{{ capStars(reviewModel.capability) }} {{ reviewModel.capability_label }}</div>
               <div class="role-box__line">{{ reviewModel.capability_desc }}</div>
-              <div class="role-box__line">厂商：{{ reviewModel.vendor }} ｜ 架构：{{ reviewModel.architecture }}</div>
+              <div class="role-box__line">厂商：{{ reviewModel.vendor }}</div>
+              <div class="role-box__line">架构：{{ reviewModel.architecture }}</div>
+              <div class="role-box__line">上下文：{{ reviewModel.context }} ｜ API 名：<code>{{ reviewModel.api_model }}</code></div>
               <el-tag size="small" :type="reviewModel.configured ? 'success' : 'info'">
                 {{ reviewModel.configured ? '已配置 Key' : '待配置 Key' }}
               </el-tag>
@@ -112,7 +121,9 @@ onMounted(load)
             <div v-if="arbitrateModel" class="role-box__meta">
               <div class="role-box__caps">{{ capStars(arbitrateModel.capability) }} {{ arbitrateModel.capability_label }}</div>
               <div class="role-box__line">{{ arbitrateModel.capability_desc }}</div>
-              <div class="role-box__line">厂商：{{ arbitrateModel.vendor }} ｜ 架构：{{ arbitrateModel.architecture }}</div>
+              <div class="role-box__line">厂商：{{ arbitrateModel.vendor }}</div>
+              <div class="role-box__line">架构：{{ arbitrateModel.architecture }}</div>
+              <div class="role-box__line">上下文：{{ arbitrateModel.context }} ｜ API 名：<code>{{ arbitrateModel.api_model }}</code></div>
               <el-tag size="small" :type="arbitrateModel.configured ? 'success' : 'info'">
                 {{ arbitrateModel.configured ? '已配置 Key' : '待配置 Key' }}
               </el-tag>
@@ -163,6 +174,10 @@ onMounted(load)
 .role-box__meta { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
 .role-box__caps { color: var(--el-color-warning); font-size: 14px; }
 .role-box__line { font-size: 12px; color: var(--el-text-color-regular); line-height: 1.6; }
+.role-box__line code {
+  font-family: var(--el-font-family-mono, ui-monospace, Consolas, monospace);
+  background: var(--el-fill-color); padding: 1px 4px; border-radius: 3px; font-size: 11px;
+}
 .review__warn { margin-top: 16px; }
 .review__head { display: flex; align-items: center; gap: 8px; }
 .review__id { font-weight: 500; }
