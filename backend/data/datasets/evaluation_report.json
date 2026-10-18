@@ -1,0 +1,19 @@
+{
+  "total_test_samples": 1,
+  "average_similarity": 100.0,
+  "number_zero_error_rate": "100.0%",
+  "terminology_consistency_target": ">= 98%",
+  "status": "PASS",
+  "details": [
+    {
+      "source_zh": "在水力压裂过程中，裂缝扩展行为主要受地应力差和压裂液黏度的控制。",
+      "reference_en": "During hydraulic fracturing, fracture propagation behavior is predominantly controlled by in-situ stress contrast and fracturing fluid viscosity.",
+      "metrics": {
+        "similarity_score": 100.0,
+        "number_pass": true,
+        "missing_numbers": [],
+        "term_rate": 1.0
+      }
+    }
+  ]
+}

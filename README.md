@@ -1,258 +1,125 @@
-# TransFlow-J 面向期刊风格的智能翻译流水线
+# 论文中译英质量保障平台 (Academic Translation Quality Assurance Platform)
 
-译前准备 → 精准翻译 → 异模型校对反思 → 定稿交付，四阶段串成流水线；期刊风格引擎作为**横向约束**同时注入翻译与校对环节，全过程可视化。
-
-```
-大作业/
-├─ frontend/    前端（Vue 3 + Vite）→ 用 HBuilderX 打开这个文件夹
-├─ backend/     后端（Java 8 + Spring Boot 2.7.18，Maven）→ 用 IDEA 打开这个文件夹
-├─ ml/          ML 工程（Python）→ 用 PyCharm 打开这个文件夹，运行 ml/app.py
-├─ data/
-│  ├─ sources/sources.json      信源三级分级体系（含黑名单）
-│  ├─ termbase/                 术语库：domain_keywords.json（领域判定）+ terms.json（已收录术语的分级证据）
-│  ├─ models/models.json        模型池：厂商 / 架构 / 聪明程度 / 是否已配 key
-│  └─ profiles/domains/*.json   按学院学科配置的权威期刊清单
-├─ scripts/dev-url.mjs          打印局域网访问地址（多人协作分享用）
-└─ docs/项目方案.md
-```
-
-## 三个工程怎么打开
-
-| 工程 | 工具 | 打开方式 | 运行方式 |
-|---|---|---|---|
-| `frontend` | HBuilderX | 文件 → 打开目录 → 选 `frontend` | 视图 → 终端，执行 `npm install` 后 `npm run dev` |
-| `backend` | IntelliJ IDEA | 文件 → 打开 → 选 `backend` 目录（Maven 自动识别 pom.xml） | 运行 `TransFlowApplication`，服务监听 `:8080` |
-| `ml` | PyCharm | 打开 `ml` 目录 | `pip install -r ml/requirements.txt`；**运行 `ml/app.py`**（FastAPI，监听 `:8000`）；`python ml/sources/classifier.py` 可单独自检分级器 |
-
-> 后端为 **Spring Boot 2.7.18 + Java 8**，兼容 IntelliJ IDEA 2020.3 与 JDK 8：代码中不使用 `record`、`jakarta.*`、`Map.of/List.of`，故旧版 IDE 也能直接零报错编译运行。
-
-## 多人协作：两种需求，两条路
-
-先分清楚 —— **「让同学打开页面看效果」和「和同学一起写代码」是两件不同的事**：
-
-| 你想做什么 | 该用什么 | 看哪节 |
-|---|---|---|
-| 同学想**看看效果 / 试用** | 局域网 IP（需同一 WiFi） | A 节 |
-| 同学要**一起写代码** | Git 仓库，各自本地跑 | B 节 |
-
-### A. 让同学访问你机器上的页面（仅限同一局域网）
-
-三个服务**都监听 `0.0.0.0`**，同学用你的**局域网 IP** 就能打开。
-
-**先查自己的局域网 IP（同时会自检三个服务是否真的起来了）：**
-
-```bash
-# 仓库根目录
-node scripts/dev-url.mjs
-# 或在 frontend 下： npm run url
-```
-
-输出示例（**下面的 IP 只是示例，实际以你终端打印的为准**）：
-
-```
-本机当前局域网 IP：<你的局域网 IP>（网卡：WLAN）
-
-【发给同事的地址】
-  前端页面　http://<你的局域网 IP>:5173/
-  后端接口　http://<你的局域网 IP>:8080/
-
-【服务自检】
-  [√] 前端页面 :5173  正常（局域网可达）
-  [√] 后端接口 :8080  正常（局域网可达）
-```
-
-> ⚠️ **本机 IP 会随网络变化**（换 WiFi、重连路由器都会变）。Vite 启动时打印的 `Network` 地址是「启动那一刻」的，换网络后**不会自动更新** —— 所以换网络后要 **① 重启 vite ② 重新运行本脚本**，别再用旧 IP。
->
-> 💡 **不需要在任何文件里改 IP**：`vite.config.js` 监听 `0.0.0.0`、`application.yml` 的 `server.address` 也是 `0.0.0.0`，代码里没有写死任何 IP。换网络后**只改"发给别人的那个地址"**，项目文件一个都不用动。
-
-**同学只需要前端地址** —— 页面里的 `/api` 请求会由前端开发服务器自动代理到后端，不需要单独访问 8080。
-
-**同学打不开时按顺序排查：**
-
-1. **地址对不对**：必须用本脚本打印的局域网 IP。不能用 `localhost`，也不能用旧 IP（旧 IP 会一直打不开）。
-2. **是否同一局域网**：必须连同一个 WiFi / 同一台路由器。
-3. **AP 隔离**：公司、学校、酒店的 WiFi 常开「AP 隔离 / 客户端隔离」，同一 WiFi 下设备之间也互相访问不了。
-   验证方法：让同学在命令行执行 `ping <你的IP>`。通则网络可达（问题在防火墙）；不通则大概率是 AP 隔离 —— 改用**手机热点**，两人连同一个热点即可。
-4. **Windows 防火墙**放行 Node.js 与 java.exe 的入站（首次运行通常会弹窗，选"允许"）。
-5. **跨网络**（同学不在同一 WiFi，比如各自在家）：局域网 IP 完全无效，需要内网穿透（frp / ngrok / Cloudflare Tunnel）或部署到服务器。
-6. 确认前端是用 `npm run dev` 启动的（会自动读 `vite.config.js` 的 `host: '0.0.0.0'`），而不是被别处参数覆盖成 `127.0.0.1`。
-7. 后端若跑在**另一台机器**上，在 `frontend` 下设置环境变量后再启动前端：
-   `set VITE_API_TARGET=http://<后端IP>:8080 && npm run dev`
-   同理，ML 服务在别的机器时改 `backend/src/main/resources/application.yml` 的 `transflow.ml-service-url`。
-
-**如果同事和你不在同一个 WiFi**（各自在家、连了不同网络）：局域网 IP 完全无效，改用下面任一方式：
-
-| 方式 | 怎么做 | 适合场景 |
-|---|---|---|
-| **电脑移动热点**（最推荐） | 设置 → 网络和 Internet → 移动热点 → 打开；同事连你的热点，你俩立刻处于同一局域网。之后重跑 `node scripts/dev-url.mjs` 查新 IP（Windows 热点通常给 `192.168.137.x`） | 面对面、同一栋楼 |
-| **手机热点** | 你开手机热点，同事连上即可（局域网内互访不消耗蜂窝流量）。同样要重跑脚本查新 IP | 面对面 |
-| **内网穿透** | 见下方「内网穿透：不在同一网络也能访问」 | 天各一方 |
-
-**内网穿透：不在同一网络也能访问**
-
-提供两种方案，按「地址是否需要固定」选：
-
-| 方案 | 地址是否固定 | 需要注册 | 命令 |
-|---|---|---|---|
-| **ngrok 固定域名**（推荐） | ✅ **永久不变** | ✅ 免费账号 | `node scripts/ngrok.mjs` |
-| Cloudflare 快速隧道 | ❌ 每次重启都变 | ❌ 不用 | `node scripts/tunnel.mjs` |
+> 面向中文学术论文的中译英、期刊风格适配、权威信源查证和多模型独立质量校对平台。
+> 严格依照《翻译质量保障流程总表》从零到一构建的全栈系统。
 
 ---
 
-**方案一：ngrok 固定域名（地址永久不变）**
+## 🛠️ 技术架构
 
-一次性准备：
-
-1. 注册免费账号：<https://dashboard.ngrok.com/signup>
-2. 复制 authtoken：<https://dashboard.ngrok.com/get-started/your-authtoken>
-3. 创建 dev domain：<https://dashboard.ngrok.com/domains>（免费版给 1 个，永久归属你的账号）
-4. 把 authtoken 写进 `tools/ngrok.yml`：
-
-```yaml
-version: "2"
-authtoken: <你的 authtoken>
-```
-
-5. 把 ngrok 放到 `tools/ngrok.exe`（或 `winget install Ngrok.Ngrok`）
-
-之后每次要用：
-
-```bash
-node scripts/ngrok.mjs
-# 或在 frontend 下： npm run ngrok
-```
-
-输出：
-
-```
-==========================================================
-  固定公网地址（重启后依然是这个）：
-  https://xxxxxxxxxxxx.ngrok-free.dev
-==========================================================
-```
-
-> **两个必须知道的坑**（脚本已自动处理，手动敲命令时要自己注意）：
-> 1. ngrok 检测到 `http_proxy` 环境变量会要求**付费计划**（`ERR_NGROK_9009`）—— 启动前必须清掉所有代理环境变量。
-> 2. 免费版**不能自定义子域名**（`ERR_NGROK_313`）—— 不要传 `--url` / `--domain`，ngrok 会自动用账号绑定的那个 dev domain。
->
-> 另注：`tools/ngrok.yml` 含账号凭证，已在 `.gitignore` 中排除，**不要提交**。
+- **前端架构**：Vue 3 + TypeScript + Vite + Element Plus + Pinia + Vue Router
+- **后端架构**：Python 3.11+ + FastAPI + SQLAlchemy + Uvicorn
+- **数据存储**：SQLite (嵌入式即开即用，无缝迁移 PostgreSQL)
+- **质量保障层**：
+  - **A0 原文预处理与稳定段落编号**：`S001`, `S002`, `S003`...
+  - **信源分级权威证据查证**：一级官方机构 > 二级国际/国家标准 > 三级专业期刊 > 四级权威教材 > 五级参考信源
+  - **期刊官方指南风格约束注入**：英美拼写规范、篇幅控制、时态/语态规则
+  - **跨厂商多模型 MQM 互审**：Accuracy, Fluency, Terminology, Style, Locale 结构化评测
+  - **确定性规则自检**：数字一致性（0 容错）、已核定术语一致率（目标 ≥ 98%）、段落与公式完整性
+  - **全套成果与复现归档导出**：纯英文 Word 稿、双语逐段对照稿、术语与信源证据表、MQM 错误清单、过程审计归档包 (.zip)
 
 ---
 
-**方案二：Cloudflare 快速隧道（免注册，地址会变）**
+## 🚀 极速启动与运行
 
+### 方式一：一键脚本启动（推荐）
+
+在项目根目录下直接运行：
 ```bash
-# 一次性安装 cloudflared（Windows 自带 winget）
-winget install Cloudflare.cloudflared
-
-# 之后每次要用，在仓库根目录执行：
-node scripts/tunnel.mjs
-# 或在 frontend 下： npm run tunnel
+./start.sh
 ```
 
-脚本会自动探测前端实际端口、建立隧道，并打印出一个公网地址，例如：
+### 方式二：手动分步启动
 
+#### 1. 启动后端 API 服务
+```bash
+cd backend
+source .venv/bin/activate
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
-==========================================================
-  把这个公网地址发给同事（他们用什么网络都能打开）：
-  https://flame-rear-biodiversity-online.trycloudflare.com
-==========================================================
+- API 服务地址：`http://127.0.0.1:8000`
+- Swagger 交互式文档：`http://127.0.0.1:8000/docs`
+
+#### 2. 启动前端页面
+另开终端窗口执行：
+```bash
+cd frontend
+npm run dev
+```
+- 前端访问地址：`http://localhost:5173`
+
+---
+
+## 📂 项目代码目录结构
+
+```text
+academic-translation/
+├── backend/
+│   ├── app/
+│   │   ├── main.py                    # FastAPI 统一服务入口
+│   │   ├── core/
+│   │   │   ├── config.py              # Pydantic 核心环境配置 (.env)
+│   │   │   ├── database.py            # SQLite / ORM 引擎与会话
+│   │   │   └── seed.py                # 预置顶级期刊与模型配置种子
+│   │   ├── models/
+│   │   │   └── database.py            # 10 张核心业务表 SQLAlchemy ORM
+│   │   ├── schemas/
+│   │   │   └── schemas.py             # 请求与响应 Pydantic 模型
+│   │   ├── services/
+│   │   │   ├── document_parser.py     # DOCX / PDF / TXT 结构化解析与段落编号
+│   │   │   ├── source_research.py     # 权威信源多级检索与证据支撑检验
+│   │   │   ├── journal_style.py       # 期刊风格指南约束与合规性检查
+│   │   │   ├── translation_service.py # 多厂商翻译模型接入与 FLAG 标记
+│   │   │   ├── mqm_review.py          # 独立跨厂商 MQM 质量评审
+│   │   │   ├── quality_checker.py     # 确定性数字、术语、完整性规则检查
+│   │   │   └── export_service.py      # Word / Excel / ZIP 成果与审计包导出
+│   │   └── api/
+│   │       ├── projects.py            # 项目 CRUD 与进度统计
+│   │       ├── documents.py           # 文档上传与异步解析
+│   │       ├── translation.py         # 逐段/批量翻译与编辑
+│   │       ├── terminology.py         # 术语管理、逐级查证与证据管理
+│   │       ├── other.py               # 期刊库、模型配置、MQM 校对与报告
+│   │       └── export.py              # 全流程文档与归档导出下载
+│   ├── training/
+│   │   ├── prepare_data.py            # OpenAlex 开放数据清洗与 DOI 独立切分
+│   │   ├── train_lora.py              # Hugging Face PEFT LoRA 微调
+│   │   └── evaluate.py                # 独立测试集客观指标评测
+│   ├── data/                          # 数据库、上传文档与衍生文件存储
+│   ├── .env                           # API Key 与模型端点私有配置
+│   └── requirements.txt               # 后端依赖清单
+├── frontend/
+│   ├── src/
+│   │   ├── views/
+│   │   │   ├── HomeView.vue           # 首页与论文项目看板
+│   │   │   ├── ProjectDetailView.vue  # 项目概览、文档上传与期刊选择
+│   │   │   ├── TranslateView.vue      # 中英双栏对照翻译工作台
+│   │   │   ├── TerminologyView.vue    # 术语逐级查证与信源证据库
+│   │   │   ├── ProofreadView.vue      # 多模型 MQM 校对、质量报告与成果导出
+│   │   │   ├── JournalsView.vue       # 目标期刊官方投稿指南库
+│   │   │   └── ModelsView.vue         # 翻译/校对模型提供商与元信息管理
+│   │   ├── api/index.ts               # Axios 统一 API 客户端
+│   │   ├── router/index.ts            # Vue Router 路由
+│   │   └── App.vue                    # 平台主应用框架
+│   └── package.json                   # 前端依赖配置
+├── start.sh                           # 一键启动脚本
+└── README.md                          # 系统开发与使用说明
 ```
 
-> - 保持运行脚本的那个窗口开着；关掉隧道就断了
-> - 后端接口由前端 `/api` 自动代理，**只需穿透前端一个端口**
-> - **地址是临时的，每次重启都会变**，重新跑一次脚本拿新地址（这是它相比 ngrok 的唯一劣势）
-> - 首次访问可能出现 Cloudflare 的提示页，点继续即可
-> - 原理：Vite 已配置 `allowedHosts: true`，否则 Vite 会拒绝来自该域名的请求
+---
 
-> 两种方案都会把当前地址写入项目根目录的 `TUNNEL-URL.txt`，随时可查。
+## 🔑 AI 模型 API Key 配置
 
-### B. 和同学一起写代码（用 Git，不是局域网 IP）
+在 `backend/.env` 文件中填入你的 API Key 即可（无需写入前端）：
+```ini
+# OpenAI
+OPENAI_API_KEY="sk-..."
+OPENAI_BASE_URL="https://api.openai.com/v1"
 
-**局域网访问解决不了"一起写代码"** —— 同学打开的是**你电脑上跑着的页面**，他们只能看，改不了代码；你的改动也不会进他们的编辑器。真要协作开发，用 Git：
+# DeepSeek
+DEEPSEEK_API_KEY="sk-..."
+DEEPSEEK_BASE_URL="https://api.deepseek.com/v1"
 
-1. 代码推到远端仓库（Gitee 对国内网络更稳，GitHub 也可以）。
-2. 每人 `git clone` 到自己电脑，**各自跑自己的 `npm run dev`** —— 这时各自用 `localhost` 完全没问题，互不干扰。
-3. 改完 `git commit && git push`，别人 `git pull` 同步。
-
-> 提交前注意：`frontend/node_modules`（180MB）等已在 `.gitignore` 里排除，只提交源码。
-> 若只是想**让同学实时看到你正在改的效果**（演示场景），才用 A 节的局域网地址。
-
-> 前端已配好代理：`/api` 默认转发到本机 `127.0.0.1:8080`（这是**服务端转发**，写 127.0.0.1 是正确的）。
-> 后端已放开 `/api/**` 跨域（`allowedOriginPatterns("*")`），前端端口不固定也能直连。
-> IDEA 运行时工作目录默认在 `backend/`，`application.yml` 里 `transflow.data-dir` 已指向 `../data`。
-
-## 信源分级体系（`data/sources/sources.json`）
-
-术语证据按等级裁决，规则由代码强制执行：
-
-| 等级 | 处置 |
-|---|---|
-| 🔴 一级源（政府 / 本校 / 标准 / 央企等 9 类） | 可直接定译，锁定为**强制译法** |
-| 🟡 二级源（CNKI / ScienceDirect / SPE OnePetro 等 20 类） | 仅当一级源未覆盖时使用，且需**两个独立二级源译法一致** |
-| ⚫ 三级源（黑名单，百科 / 有道 / 维基 / 自媒体等 11 类） | **一律禁止**，命中即整条作废 |
-| 未识别（含短链） | 强制标记「待人工确认」 |
-
-分级器已在 Java 与 Python 两侧**同规则实现**并跑通自检：黑名单拦截、一级源锁定、一级源冲突检测、二级源交叉验证。
-
-## 期刊风格库（`data/profiles/domains/`）
-
-按西南石油大学 **15 个学院**覆盖 6 大领域配置权威期刊，每条标注影响力与**开放获取状态**——决定语料采集范围：
-
-- `petroleum.json` — 石油与天然气工程（SPE 系、Petroleum Science、Natural Gas Industry B…）
-- `geoscience.json` — 地质资源与地质工程（GSA/AGU、Geoscience Frontiers、Solid Earth…）
-- `engineering.json` — 机械 / 化工 / 新能源材料 / 电气 / 土木测绘（含 MDPI 系列 OA）
-- `science-tech.json` — 计算机与软件、理学
-- `humanities.json` — 经管、法学、马克思主义、外国语、体育、艺术
-
-采集边界：**只采开放获取全文或公开摘要**，订阅制期刊仅取元数据；遵守 robots.txt、限速 ≤1 req/s、记录 DOI。
-
-## 三大交互功能（已从"展示"升级为"可用"）
-
-**1. 译前准备 · 术语查证**（页面 `/prep`，接口 `POST /api/term/analyze`、`POST /api/term/authority`）
-输入文章中的词语（可带上下文）→ 判定所属领域 → 按「一级源优先，找不到再降二级，三级一律不用」检索信源。
-
-页面**直接显示**该词的权威英文译文，而不是只给一个网站链接：系统会调用一级源「全国术语在线」（T1-06，全国科学技术名词审定委员会）的站内检索接口，把 `中文词 → 官方英文译名` 连同**术语库出处、所属学科、发布年份、术语编号、中文释义、审定依据**一并呈现在「权威译文」卡片上，并可跳转到官网原始条目核对。同词在多个术语库有不同译名时，以「同词多库译名」表横向列出。
-
-- 一级源命中 → 状态 `locked`（锁定 · 一级源定译），可直接定稿；
-- 一级源未收录 → 卡片明确提示并降级，给出分级查证方案（一级 9 类 → 二级 8 类 → 三级一律不采用）；
-- 全程不经过任何搜索引擎，只走权威站点本身。
-- 接口 `POST /api/term/authority` 可单独取译文（页面上的「仅取权威译文」按钮），`found:false` 时返回降级原因。
-
-### 按站点分别适配检索词（关键设计）
-
-**不同网站要用不同的检索词，也必须如实说明它到底能不能搜。** 证据链与查证方案里，每个信源都单独标注「该站检索词」与真实能力（`data/sources/search_templates.json` v3.0 驱动）：
-
-| 站点 | 检索词用什么 | 能力 |
-|---|---|---|
-| 中国政府网（中文） | 中文原词 | ✅ 可站内检索 |
-| 中国政府网（英文） | **英文译名** | ✅ 可站内检索 |
-| 教育部英文官网 | **英文译名** | ✅ 可站内检索 |
-| 全国术语在线 | 中文原词 | ✅ 可站内检索（另有原始条目直链） |
-| 中国科学院 | 中文原词（**双重 URL 编码**） | ✅ 可站内检索 |
-| 国务院新闻办 / 西南石油大学 / 三桶油 / 丝路网 | — | ⚪ **无检索入口**（只给官网链接，不给假链接） |
-| 国家标准全文公开系统 | 中文原词 | 🟡 需在页面内手动查询 |
-
-上表所有 ✅ 条目均于 2026-10-15 用**真实浏览器逐个实测**确认能出结果（如中国政府网英文版检索 `petroleum` → 204 条、中科院检索 `石油` → 528 篇、术语在线检索 `石油` → 3567 条），实测证据记录在配置文件的 `probe` 字段中。
-
-> 已适配两类网络环境：本机直连（默认）与容器/企业网（自动读取 `http_proxy` 出口代理；若存在 `NODE_EXTRA_CA_CERTS` / `SSL_CERT_FILE` 系统 CA 包则并入信任链，**不关闭证书校验**）。
-
-**2. 期刊风格翻译**（页面 `/journals`，接口 `POST /api/style/translate`）
-在期刊表中点选目标期刊 → 选择"成段 / 整篇" → 翻译。优先调用 ML 服务（`ml/app.py`）的风格模型；模型未接入时返回风格约束卡与明确状态，保证链路可联调。
-
-**3. 校对反思 · 模型选择**（页面 `/review`，接口 `GET /api/models`）
-主译 / 复核 / 裁决三个槽位分别选模型，展示厂商、架构与**聪明程度（★ 星级 + 大白话说明）**；自动提示"复核须与主译跨厂商、跨架构"，避免同源同错。
-
-## 当前进度
-
-- [x] 信源三级分级体系 + 分级器（Java / Python 双端同规则实现）
-- [x] 6 个领域共 90+ 本权威期刊配置
-- [x] **译前准备：术语查证 + 权威译文直显 + 按站点适配检索词**（领域判定 + 分级信源策略 + 一级源在线取译名 + 9 个一级源逐个实测，接口与页面已实测）
-- [x] **期刊风格翻译**（选期刊 → 成段/整篇；含风格约束卡，待模型接入）
-- [x] **模型池目录 + 校对页模型选择**（厂商 / 架构 / 聪明程度）
-- [x] ML 服务入口 `ml/app.py`（FastAPI，`/health`、`/term/analyze`、`/style/translate`）
-- [x] 后端 API 已用 JDK 8 编译 + 启动 + 接口实测通过；前端 `vite build` 通过
-- [ ] 模型接入（主译 / 复核 / 裁决，需 API Key）
-- [ ] 期刊语料采集与风格模型训练（B1 判别器 / B2 LoRA）
-
-详细设计见 `docs/项目方案.md`。
+# Anthropic Claude
+ANTHROPIC_API_KEY="sk-ant-..."
+```
+系统支持使用不同模型分别作为翻译模型与校对模型，实现跨厂商独立互审。

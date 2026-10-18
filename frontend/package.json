@@ -1,27 +1,29 @@
 {
-  "name": "transflow-j-frontend",
+  "name": "frontend",
   "private": true,
-  "version": "0.1.0",
-  "description": "面向期刊风格的智能翻译流水线 —— 可视化控制台（Vue 3 + Vite）",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "url": "node ../scripts/dev-url.mjs",
-    "tunnel": "node ../scripts/tunnel.mjs",
-    "ngrok": "node ../scripts/ngrok.mjs"
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "axios": "^1.7.7",
-    "echarts": "^5.5.1",
-    "element-plus": "^2.8.8",
-    "@element-plus/icons-vue": "^2.3.1",
-    "vue": "^3.5.13",
-    "vue-router": "^4.4.5"
+    "@element-plus/icons-vue": "^2.3.2",
+    "axios": "^1.20.0",
+    "echarts": "^6.1.0",
+    "element-plus": "^2.14.7",
+    "pinia": "^4.1.0",
+    "vue": "^3.5.42",
+    "vue-echarts": "^8.3.2",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.1.4",
-    "vite": "^5.4.10"
+    "@types/node": "^24.13.3",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/tsconfig": "^0.9.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0",
+    "vue-tsc": "^3.3.11"
   }
 }

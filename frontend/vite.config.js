@@ -29,8 +29,23 @@ export default defineConfig({
       }
     }
   },
+  // 打包预览（npm run build && vite preview）
+  //   给同事分享时用这个，不要用 dev server：
+  //   dev 模式每个 .vue 都单独请求，经内网穿透中转后首屏要 20~30 秒，看起来像白屏；
+  //   打包后只有几个文件，公网几秒就能打开。
   preview: {
     host: '0.0.0.0',
-    port: 4173
+    port: 4173,
+    // 端口被占用直接报错，避免隧道指向空端口
+    strictPort: true,
+    // 同 server.allowedHosts：ngrok / Cloudflare 的域名必须放行
+    allowedHosts: true,
+    // preview 默认继承 server.proxy，这里显式写一遍，避免升级 Vite 后行为变化
+    proxy: {
+      '/api': {
+        target: API_TARGET,
+        changeOrigin: true
+      }
+    }
   }
 })

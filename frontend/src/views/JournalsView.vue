@@ -1,212 +1,271 @@
-<script setup>
-import { onMounted, ref } from 'vue'
+<template>
+  <div class="journals-view">
+    <div class="apple-back-bar mb-20 flex-between">
+      <button class="apple-back-pill" @click="$router.push('/workspace')">
+        <el-icon><ArrowLeft /></el-icon>
+        <span>返回我的项目</span>
+      </button>
+      <span class="bar-hint">查阅投稿指南，准备适合目标期刊的写作要求。</span>
+    </div>
+
+    <div class="page-header flex-between mb-24">
+      <div>
+        <div class="page-title">期刊规范</div>
+        <div class="page-desc">维护目标期刊的官方投稿指南和风格规范</div>
+      </div>
+      <el-button type="primary" @click="showDialog = true">
+        <el-icon><Plus /></el-icon> 添加期刊
+      </el-button>
+    </div>
+
+    <!-- 搜索 -->
+    <div class="card mb-24">
+      <el-input
+        v-model="searchQuery"
+        placeholder="搜索期刊名称或缩写..."
+        @input="debouncedSearch"
+        clearable
+      >
+        <template #prefix><el-icon><Search /></el-icon></template>
+      </el-input>
+    </div>
+
+    <!-- 期刊列表 -->
+    <div class="journals-grid">
+      <div v-for="journal in journals" :key="journal.id" class="journal-card card">
+        <div class="journal-name">{{ journal.name }}</div>
+        <div v-if="journal.abbreviation" class="journal-abbr">{{ journal.abbreviation }}</div>
+        <div class="journal-tags flex gap-8 mb-8">
+          <el-tag v-if="journal.publisher" size="small" type="info">{{ journal.publisher }}</el-tag>
+          <el-tag v-if="journal.domain" size="small">{{ journal.domain }}</el-tag>
+          <el-tag size="small" type="success">{{ journal.english_variant }} English</el-tag>
+        </div>
+        <el-descriptions :column="1" size="small" border class="mb-8">
+          <el-descriptions-item label="摘要上限">{{ journal.abstract_word_limit || '未设定' }} 词</el-descriptions-item>
+          <el-descriptions-item label="引用格式">{{ journal.citation_style || '未设定' }}</el-descriptions-item>
+          <el-descriptions-item label="作者指南">
+            <a v-if="journal.author_guide_url" :href="journal.author_guide_url" target="_blank" style="color: #4096ff;">
+              查看 ↗
+            </a>
+            <span v-else style="color: #aaa">未录入</span>
+          </el-descriptions-item>
+        </el-descriptions>
+        <el-button size="small" @click="editJournal(journal)">编辑风格规则</el-button>
+      </div>
+    </div>
+
+    <el-empty v-if="journals.length === 0 && !loading" description="暂无期刊，请添加" />
+
+    <!-- 添加/编辑期刊对话框 -->
+    <el-dialog v-model="showDialog" :title="editingId ? '编辑期刊' : '添加期刊'" width="680px">
+      <el-form :model="form" label-width="110px">
+        <el-row :gutter="16">
+          <el-col :span="16">
+            <el-form-item label="期刊名称" required>
+              <el-input v-model="form.name" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="缩写">
+              <el-input v-model="form.abbreviation" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="出版商">
+              <el-input v-model="form.publisher" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="学科领域">
+              <el-input v-model="form.domain" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="期刊主页 URL">
+          <el-input v-model="form.homepage_url" placeholder="https://..." />
+        </el-form-item>
+        <el-form-item label="作者指南 URL">
+          <el-input v-model="form.author_guide_url" placeholder="https://..." />
+        </el-form-item>
+        <el-row :gutter="16">
+          <el-col :span="8">
+            <el-form-item label="英语规范">
+              <el-select v-model="form.english_variant" style="width:100%">
+                <el-option label="American English" value="American" />
+                <el-option label="British English" value="British" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="摘要字数上限">
+              <el-input-number v-model="form.abstract_word_limit" :min="0" style="width:100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="引用格式">
+              <el-select v-model="form.citation_style" style="width:100%">
+                <el-option label="Vancouver" value="Vancouver" />
+                <el-option label="APA" value="APA" />
+                <el-option label="IEEE" value="IEEE" />
+                <el-option label="Chicago" value="Chicago" />
+                <el-option label="Harvard" value="Harvard" />
+                <el-option label="其他" value="Other" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <!-- 风格规则 JSON 编辑 -->
+        <el-form-item label="风格规则">
+          <div style="width:100%">
+            <el-input
+              v-model="styleRulesJson"
+              type="textarea"
+              :rows="6"
+              placeholder='从官方指南归纳，例如：
+{
+  "tense": "过去式描述实验，现在式讨论结论",
+  "voice": "优先使用主动语态",
+  "abbreviations": "首次出现须全称，括号内注明缩写",
+  "other": ["避免过长句子", "专业术语需首次解释"]
+}'
+            />
+            <div style="font-size:12px; color:#aaa; margin-top:4px;">
+              ⚠ 风格规则应从目标期刊官方作者指南归纳，并记录核验日期
+            </div>
+          </div>
+        </el-form-item>
+        <el-form-item label="指南核验日期">
+          <el-input v-model="form.guide_verified_date" placeholder="如：2024-10" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showDialog = false">取消</el-button>
+        <el-button type="primary" @click="saveJournal" :loading="saving">保存</el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { fetchDomains, fetchDomainDetail, fetchModels, styleTranslate } from '../api/modules'
+import { Plus, Search, ArrowLeft } from '@element-plus/icons-vue'
+import { journalsApi } from '../api'
 
-const domains = ref([])
-const active = ref(null)
-const journals = ref([])
-const journalCount = ref(0)
+const journals = ref<any[]>([])
 const loading = ref(false)
-const selected = ref(null)
+const searchQuery = ref('')
+const showDialog = ref(false)
+const saving = ref(false)
+const editingId = ref<number | null>(null)
+const styleRulesJson = ref('')
 
-const models = ref([])
-const modelId = ref('')
-const scope = ref('paragraph')
-const text = ref('')
-const translating = ref(false)
-const result = ref(null)
+const form = ref({
+  name: '', abbreviation: '', publisher: '', domain: '',
+  homepage_url: '', author_guide_url: '', english_variant: 'American',
+  abstract_word_limit: undefined as number | undefined,
+  citation_style: '', guide_verified_date: '',
+  style_rules: null as any,
+})
 
-const load = async () => {
-  try {
-    domains.value = (await fetchDomains())?.data || []
-  } catch (e) {
-    ElMessage.error('领域列表加载失败，请确认后端已启动')
-    return
+const resetForm = () => {
+  form.value = {
+    name: '', abbreviation: '', publisher: '', domain: '',
+    homepage_url: '', author_guide_url: '', english_variant: 'American',
+    abstract_word_limit: undefined, citation_style: '',
+    guide_verified_date: '', style_rules: null,
   }
-  if (domains.value.length && !active.value) {
-    await select(domains.value[0].domain)
-  }
+  styleRulesJson.value = ''
+  editingId.value = null
 }
 
-const select = async (domain) => {
-  active.value = domain
-  selected.value = null
-  result.value = null
+const loadJournals = async (search?: string) => {
   loading.value = true
   try {
-    const detail = (await fetchDomainDetail(domain))?.data || {}
-    journals.value = detail.journals || []
-    journalCount.value = detail.journal_count ?? journals.value.length
-    if (!journals.value.length) {
-      ElMessage.warning('该领域下暂无已配置期刊')
-    }
-  } catch (e) {
-    journals.value = []
-    journalCount.value = 0
-    ElMessage.error(`「${domain}」期刊列表加载失败：${e?.response?.status || ''} ${e?.message || ''}`)
+    journals.value = await journalsApi.list({ search, limit: 100 }) as any[]
   } finally {
     loading.value = false
   }
 }
 
-const pick = (row) => {
-  selected.value = row
-  result.value = null
+let searchTimeout: any
+const debouncedSearch = () => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => loadJournals(searchQuery.value || undefined), 300)
 }
 
-const loadModels = async () => {
-  const data = (await fetchModels())?.data || {}
-  models.value = data.models || []
+const editJournal = (journal: any) => {
+  editingId.value = journal.id
+  Object.assign(form.value, journal)
+  styleRulesJson.value = journal.style_rules ? JSON.stringify(journal.style_rules, null, 2) : ''
+  showDialog.value = true
 }
 
-const doTranslate = async () => {
-  if (!selected.value) {
-    ElMessage.warning('请先在下方表格中点击选择一个目标期刊')
+const saveJournal = async () => {
+  if (!form.value.name) {
+    ElMessage.warning('请填写期刊名称')
     return
   }
-  if (!text.value.trim()) {
-    ElMessage.warning('请输入要翻译的文本')
-    return
+  // 解析 JSON 风格规则
+  if (styleRulesJson.value) {
+    try {
+      form.value.style_rules = JSON.parse(styleRulesJson.value)
+    } catch {
+      ElMessage.error('风格规则 JSON 格式不正确')
+      return
+    }
   }
-  translating.value = true
+  saving.value = true
   try {
-    result.value = (await styleTranslate({
-      journal: selected.value.name,
-      text: text.value,
-      scope: scope.value,
-      model: modelId.value || null
-    }))?.data || null
+    if (editingId.value) {
+      const updated = await journalsApi.update(editingId.value, form.value) as any
+      const idx = journals.value.findIndex(j => j.id === editingId.value)
+      if (idx >= 0) journals.value[idx] = updated
+    } else {
+      const j = await journalsApi.create(form.value) as any
+      journals.value.unshift(j)
+    }
+    showDialog.value = false
+    resetForm()
+    ElMessage.success('期刊信息已保存')
+  } catch (e: any) {
+    ElMessage.error(e.message)
   } finally {
-    translating.value = false
+    saving.value = false
   }
 }
 
-const oaTag = (v) => (v === true ? 'success' : v === 'hybrid' ? 'warning' : 'info')
-const oaText = (v) => (v === true ? '开放获取' : v === 'hybrid' ? '混合' : '订阅')
-const tierTag = (t) => (t === 'top' ? 'danger' : t === 'high' ? 'warning' : 'info')
-const capStars = (n) => '★'.repeat(n) + '☆'.repeat(Math.max(0, 5 - n))
-
-onMounted(() => {
-  load()
-  loadModels()
-})
+onMounted(() => loadJournals())
 </script>
 
-<template>
-  <div class="journals">
-    <el-card shadow="never">
-      <template #header><span class="card-title">领域选择</span></template>
-      <div class="domain-chips">
-        <el-tag
-          v-for="d in domains"
-          :key="d.domain"
-          :type="d.domain === active ? 'primary' : 'info'"
-          effect="plain"
-          size="large"
-          class="domain-chip"
-          @click="select(d.domain)"
-        >
-          {{ d.domain_zh }}
-        </el-tag>
-      </div>
-    </el-card>
-
-    <el-card shadow="never">
-      <template #header>
-        <span class="card-title">权威期刊列表</span>
-        <el-tag v-if="journals.length" size="small" type="info" effect="plain" class="count-tag">
-          共 {{ journalCount }} 本 · 点击某一行选定为翻译目标期刊
-        </el-tag>
-        <span v-else class="target-hint">点击某一行选定为翻译目标期刊</span>
-      </template>
-      <el-table v-loading="loading" :data="journals" size="small" border stripe highlight-current-row
-        @row-click="pick" :current-row-key="selected?.name" row-key="name" empty-text="该领域暂无已配置期刊">
-        <el-table-column prop="name" label="期刊" min-width="250" />
-        <el-table-column prop="subfield" label="学科方向" width="150" show-overflow-tooltip />
-        <el-table-column prop="publisher_zh" label="出版方" width="170" />
-        <el-table-column label="影响力" width="90">
-          <template #default="{ row }">
-            <el-tag size="small" :type="tierTag(row.tier)">{{ row.tier }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="开放获取" width="100">
-          <template #default="{ row }">
-            <el-tag size="small" :type="oaTag(row.open_access)">{{ oaText(row.open_access) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="语料采集范围" width="130">
-          <template #default="{ row }">
-            {{ row.collect_scope === 'fulltext' ? '可采集全文' : row.collect_scope === 'abstract_only' ? '仅公开摘要' : '仅元数据' }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="site" label="站点" min-width="210" />
-        <el-table-column prop="note" label="备注" min-width="150" show-overflow-tooltip />
-      </el-table>
-    </el-card>
-
-    <el-card shadow="never">
-      <template #header>
-        <span class="card-title">
-          期刊风格翻译
-          <el-tag v-if="selected" size="small" type="primary" effect="dark" class="target-tag">
-            目标期刊：{{ selected.name }}
-          </el-tag>
-          <span v-else class="target-hint">← 请先在上方表格选择一个期刊</span>
-        </span>
-      </template>
-
-      <div class="trans-toolbar">
-        <el-radio-group v-model="scope">
-          <el-radio-button label="paragraph">成段翻译</el-radio-button>
-          <el-radio-button label="full">整篇翻译</el-radio-button>
-        </el-radio-group>
-
-        <el-select v-model="modelId" placeholder="翻译模型（可选）" clearable style="width: 300px">
-          <el-option v-for="m in models" :key="m.id" :label="`${m.name} · ${capStars(m.capability)} ${m.capability_label}`" :value="m.id" />
-        </el-select>
-
-        <el-button type="primary" :loading="translating" :disabled="!selected" @click="doTranslate">
-          开始翻译
-        </el-button>
-      </div>
-
-      <el-input v-model="text" type="textarea" :rows="8"
-        placeholder="在此粘贴要翻译的源文本（成段翻译建议一段一贴；整篇翻译可粘贴全文）" />
-
-      <div v-if="result" class="trans-result">
-        <el-alert v-if="result.status !== 'ok' && result.status !== 'success'"
-          :title="result.message || '模型未接入'" type="warning" :closable="false" show-icon />
-        <div v-if="result.translation" class="trans-output">
-          <div class="trans-output__label">译文</div>
-          <pre>{{ result.translation }}</pre>
-        </div>
-        <el-descriptions v-if="result.style_card" title="风格约束卡" :column="2" border size="small" class="style-card">
-          <el-descriptions-item label="期刊">{{ result.style_card.journal || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="领域">{{ result.style_card.domain_zh || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="语体">{{ result.style_card.register }}</el-descriptions-item>
-          <el-descriptions-item label="人称">{{ result.style_card.person }}</el-descriptions-item>
-          <el-descriptions-item label="术语">{{ result.style_card.terminology }}</el-descriptions-item>
-          <el-descriptions-item label="句法">{{ result.style_card.sentence }}</el-descriptions-item>
-          <el-descriptions-item label="数字单位">{{ result.style_card.numbers }}</el-descriptions-item>
-          <el-descriptions-item label="引擎">{{ result.engine }}</el-descriptions-item>
-        </el-descriptions>
-      </div>
-    </el-card>
-  </div>
-</template>
-
 <style scoped>
-.card-title { font-weight: 500; }
-.journals { display: flex; flex-direction: column; gap: 16px; }
-.domain-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.domain-chip { cursor: pointer; }
-.count-tag { margin-left: 8px; }
-.target-tag { margin-left: 8px; }
-.target-hint { margin-left: 8px; font-size: 12px; color: var(--el-text-color-secondary); }
-.trans-toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
-.trans-result { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
-.trans-output__label { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 6px; }
-.trans-output pre { background: var(--el-fill-color-light); padding: 12px; border-radius: 8px; font-size: 13px; line-height: 1.7; white-space: pre-wrap; margin: 0; }
-.style-card { margin-top: 4px; }
+.journals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
+}
+
+.journal-card {
+  padding: 20px;
+}
+
+.journal-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.journal-abbr {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 10px;
+}
+
+.journal-tags {
+  flex-wrap: wrap;
+}
 </style>
