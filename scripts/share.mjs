@@ -124,6 +124,9 @@ async function ensureBackend() {
   const p = spawn(py, ['-m', 'uvicorn', 'app.main:app', '--host', '0.0.0.0', '--port', String(BACKEND_PORT)], {
     cwd: path.join(ROOT, 'backend'),
     stdio: ['ignore', 'pipe', 'pipe'],
+    // 关键：计划任务里没有控制台，Python 默认用 GBK 编码 stdout，
+    // 后端启动时打印的 emoji（✅）会触发 UnicodeEncodeError 直接退出。
+    env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' },
   })
   p.stdout.on('data', (d) => log('[backend] ' + d.toString().trim()))
   p.stderr.on('data', (d) => log('[backend] ' + d.toString().trim()))
