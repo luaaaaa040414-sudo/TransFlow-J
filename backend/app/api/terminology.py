@@ -107,17 +107,22 @@ async def auto_research_term(term_id: int, db: Session = Depends(get_db)):
         if c and c not in candidates:
             candidates.append(c)
 
-    # 查重集合
-    existing_keys = {
-        (e.source_name, e.candidate_translation)
-        for e in db.query(SourceEvidence).filter(SourceEvidence.term_id == term.id).all()
-    }
+    # 查重（同时用于刷新已存在记录的 source_url）
+    existing_rows = db.query(SourceEvidence).filter(SourceEvidence.term_id == term.id).all()
+    existing_map = {(e.source_name, e.candidate_translation): e for e in existing_rows}
 
     added_count = 0
     for ev_data in evidences:
         cand = (ev_data.get("candidate_translation") or "").strip()
         key = (ev_data.get("source_name"), cand or None)
-        if key in existing_keys:
+
+        row = existing_map.get(key)
+        if row is not None:
+            # 证据已存在：把旧的「网站首页」链接刷新成「站内检索结果页」。
+            # 不这样做的话，历史数据会一直停在 https://www.termonline.cn 这种首页上。
+            new_url = (ev_data.get("source_url") or "").strip()
+            if new_url and row.source_url != new_url:
+                row.source_url = new_url
             continue
 
         evidence = SourceEvidence(
@@ -132,7 +137,7 @@ async def auto_research_term(term_id: int, db: Session = Depends(get_db)):
             is_valid=ev_data.get("is_valid", True),
         )
         db.add(evidence)
-        existing_keys.add(key)
+        existing_map[key] = evidence
         added_count += 1
 
     term.candidate_translations = candidates

@@ -19,6 +19,7 @@ from typing import List, Dict, Optional, Any
 import httpx
 
 from app.core.config import settings
+from app.services.source_links import annotate_evidence
 
 logger = logging.getLogger(__name__)
 
@@ -724,7 +725,7 @@ class SourceResearchService:
         exact_res = self.step1_search_exact_full_term(source_term, inferred_domain)
         if exact_res:
             logger.info(f"✓ 步骤1直接命中完整词条: 「{source_term}」 -> {exact_res['recommended_translation']}")
-            return exact_res
+            return self._attach_search_links(exact_res, source_term)
 
         logger.info(f"ℹ 步骤1未命中单一国家完整词条，自动转入步骤2（语义结构拆解）...")
 
@@ -755,7 +756,7 @@ class SourceResearchService:
         if alt_en and alt_en not in candidates:
             candidates.append(alt_en)
 
-        return {
+        return self._attach_search_links({
             "source_term": source_term,
             "domain": inferred_domain,
             "is_exact": False,
@@ -767,7 +768,35 @@ class SourceResearchService:
             "recommendation_reason": cards[0]["recommendation_reason"] if cards else "",
             "cards": cards,
             "evidences": evidences
-        }
+        }, source_term)
+
+    def _attach_search_links(self, result: Dict[str, Any], term_zh: str) -> Dict[str, Any]:
+        """
+        把证据里的「网站首页」换成「该站针对本术语的检索结果页」。
+
+        原始数据里的 source_url 大多只写到 https://www.termonline.cn 这种首页，
+        用户点「查看权威出处」进去还得自己再搜一遍。这里统一改写：
+            https://www.termonline.cn  →  .../search?searchText=carbon%20neutrality
+
+        没有可用检索入口的站点（中国工程院、国博、API、本校官网）保持原地址，
+        并标记 source_url_kind="homepage"，前端据此显示不同文案，不假装能搜。
+        """
+        term_en = (result.get("recommended_translation") or "").strip()
+        if not term_en:
+            cands = result.get("candidates") or []
+            term_en = (cands[0] if cands else "").strip()
+
+        # 候选里可能还是中文（例如「碳中和」尚未产出英文译名）。
+        # 中文不能当英文用：拿去 onepetro / nature 搜必然 0 结果。
+        if term_en and (not re.search(r"[A-Za-z]", term_en) or re.search(r"[\u4e00-\u9fff]", term_en)):
+            term_en = ""
+
+        for ev in result.get("evidences", []) or []:
+            annotate_evidence(ev, term_zh, term_en)
+        for card in result.get("cards", []) or []:
+            annotate_evidence(card, term_zh, term_en)
+
+        return result
 
     async def search_term_evidence(
         self,

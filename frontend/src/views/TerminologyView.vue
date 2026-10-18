@@ -231,14 +231,15 @@
                   </div>
                 </div>
 
-                <div class="field-row flex-between mt-8" style="align-items: center;">
-                  <div>
+                <div class="field-row flex-between mt-8" style="align-items: center; gap: 8px;">
+                  <div class="source-meta">
                     <span class="field-k">🏛️ 权威信源：</span>
                     <el-tag size="small" :type="levelTagType(card.source_level)">{{ card.source_level }}级信源</el-tag>
                     <span class="ml-8 text-secondary" style="font-size: 13px;">{{ card.source_name }}</span>
                   </div>
-                  <a v-if="card.source_url" :href="card.source_url" target="_blank" class="source-external-link">
-                    查看权威出处链接 ↗
+                  <a v-if="card.source_url" :href="card.source_url" target="_blank" class="source-external-link"
+                     :title="isSearchUrl(card.source_url) ? '直接打开该信源针对本术语的检索结果页' : '该信源没有站内检索入口，打开官网后请手动检索'">
+                    {{ sourceLinkText(card.source_url) }}
                   </a>
                 </div>
               </div>
@@ -341,8 +342,10 @@
                     <el-button size="small" link @click="verifyEvidence(ev, !ev.is_valid)">
                       {{ ev.is_valid ? '标记无效' : '标记有效' }}
                     </el-button>
-                    <a v-if="ev.source_url" :href="ev.source_url" target="_blank" style="font-size:12px;">
-                      查看来源 ↗
+                    <a v-if="ev.source_url" :href="ev.source_url" target="_blank"
+                       style="font-size:12px; white-space:nowrap; flex-shrink:0;"
+                       :title="isSearchUrl(ev.source_url) ? '直接打开该信源针对本术语的检索结果页' : '该信源没有站内检索入口，打开官网后请手动检索'">
+                      {{ sourceLinkText(ev.source_url) }}
                     </a>
                   </div>
                 </div>
@@ -405,6 +408,16 @@ const evidenceForm = ref({
 })
 
 const levelTagType = (level: number) => (['', 'danger', 'warning', 'success', 'info', ''][level] || 'info')
+
+// 判断这个链接是不是「该站针对本术语的检索结果页」而不是网站首页。
+// 后端已把首页地址改写成检索深链（source_links.py），但 DB 里的历史证据没有 kind 字段，
+// 所以这里按 URL 形态兜底判断：带检索参数或检索路径的就算检索页。
+const isSearchUrl = (url?: string) => {
+  if (!url) return false
+  return /[?&](q|qs|query|queryText|searchText|searchWord|searchword|keyword|term|AllField)=/i.test(url)
+    || /\/(search|search-results|searchresult|doSearch)(\.|\/|\?|$)/i.test(url)
+}
+const sourceLinkText = (url?: string) => (isSearchUrl(url) ? '查看站内检索结果 ↗' : '打开信源官网 ↗')
 const termStatusType = (s: string) => ((({ pending: 'info', confirmed: 'success', disputed: 'warning', rejected: 'danger' } as Record<string, any>)[s]) || 'info')
 const termStatusLabel = (s: string) => ((({ pending: '待查证', confirmed: '已确认', disputed: '有争议', rejected: '已排除' } as Record<string, string>)[s]) || s)
 
@@ -809,11 +822,25 @@ onMounted(loadTerms)
   margin-top: 4px;
 }
 
+/* 左侧信源信息允许收缩换行（保留完整名称），把空间让给右侧链接 */
+.source-meta {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .source-external-link {
   font-size: 12.5px;
   color: #2563eb;
   text-decoration: none;
   font-weight: 500;
+  /* 不换行、不被左侧信源名挤扁：否则「查看站内检索结果 ↗」会被折成两行 */
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #eff6ff;
+  line-height: 1.5;
 }
 
 .source-external-link:hover {
