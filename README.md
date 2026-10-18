@@ -48,7 +48,41 @@ npm run dev
 ```
 - 前端访问地址：`http://localhost:5173`
 
+### 方式三：Windows 一键启动 + 公网分享（本机实际使用）
+
+上面的 `source .venv/bin/activate` 是 macOS / Linux 写法，Windows 上虚拟环境在 `Scripts\` 目录。本机已按下面这套配好：
+
+```bash
+# 首次：建 Windows 虚拟环境（只需一次）
+cd backend
+python -m venv .venv-win
+.venv-win\Scripts\pip install -r requirements.txt
+
+# 之后一键：启动后端(8000) + 打包预览(4173) + 公网隧道
+cd ..
+node scripts/share.mjs
+```
+
+`scripts/share.mjs` 会自动做四件事：检测源码是否需要重新打包 → 拉起 FastAPI 后端（若 8000 未监听）→ 起 `vite preview`（4173）→ 起 ngrok 隧道，最后打印公网地址。
+
+**已配置 Windows 计划任务「TransFlow-J 公网分享」**：开机登录后自动执行 `share.mjs --serve-only`，前后端和隧道一起起来，无需手动操作。管理入口：`任务计划程序` → 任务计划程序库。
+
+公网固定地址：
+
+```
+https://submitter-stoneware-upstage.ngrok-free.dev
+```
+
+> **首次访问**：ngrok 免费版会给每个新访客显示一次 `You are about to visit ... [Visit Site]`，点 **Visit Site** 即可，之后同一浏览器不再出现。
+>
+> **改了代码**：跑一次 `node scripts/share.mjs`（会重新打包）；或等计划任务下次启动时自动检测「源码比 dist 新」再补打包。
+>
+> **排查**：打不开时看 `tools/share.log`、`TUNNEL-URL.txt`，并确认 `tasklist | findstr ngrok` 有进程——进程没了就是隧道断了。
+>
+> **为什么分享用打包预览而不是 dev server**：dev 模式把每个 `.vue` 单独发给浏览器，几百个文件全走隧道中转，公网首屏要 20~30 秒（像白屏）；打包后 1 秒内打开。
+
 ---
+
 
 ## 📂 项目代码目录结构
 

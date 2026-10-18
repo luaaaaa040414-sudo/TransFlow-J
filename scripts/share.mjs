@@ -97,11 +97,49 @@ function needsBuild() {
   const distTime = fs.statSync(distIndex).mtimeMs
   const srcTime = Math.max(
     newestMtime(path.join(FRONTEND, 'src')),
+    newestMtime(path.join(FRONTEND, 'vite.config.ts')),
     newestMtime(path.join(FRONTEND, 'vite.config.js')),
     newestMtime(path.join(FRONTEND, 'index.html')),
   )
   if (srcTime > distTime) return '源码比 dist 新'
   return null
+}
+
+// 后端：Python FastAPI（backend/app），监听 8000，接口前缀 /api/v1
+// 没在跑就顺手拉起来，这样开机自启一个任务就把前后端都带起来
+async function ensureBackend() {
+  const BACKEND_PORT = 8000
+  if (await probe(BACKEND_PORT)) {
+    log(`:${BACKEND_PORT} 后端已在运行，直接复用`)
+    return null
+  }
+  const py = path.join(ROOT, 'backend', '.venv-win', 'Scripts', 'python.exe')
+  if (!fs.existsSync(py)) {
+    log(`⚠ 没找到后端虚拟环境 ${py}`)
+    log('  首次使用请先执行：')
+    log('  cd backend && python -m venv .venv-win && .venv-win\\Scripts\\pip install -r requirements.txt')
+    return null
+  }
+  log('启动 FastAPI 后端 …')
+  const p = spawn(py, ['-m', 'uvicorn', 'app.main:app', '--host', '0.0.0.0', '--port', String(BACKEND_PORT)], {
+    cwd: path.join(ROOT, 'backend'),
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  p.stdout.on('data', (d) => log('[backend] ' + d.toString().trim()))
+  p.stderr.on('data', (d) => log('[backend] ' + d.toString().trim()))
+  for (let i = 0; i < 80; i++) {
+    await sleep(500)
+    if (await probe(BACKEND_PORT)) {
+      log(`后端就绪：http://127.0.0.1:${BACKEND_PORT}/docs`)
+      return p
+    }
+    if (p.exitCode !== null) {
+      log(`⚠ 后端进程退出（code=${p.exitCode}），请查看上方报错`)
+      return null
+    }
+  }
+  log('⚠ 后端启动超时（40 秒），前端仍会启动，但页面拿不到数据')
+  return p
 }
 
 async function ensurePreview() {
@@ -210,6 +248,7 @@ try {
       log('dist 已是最新，跳过打包')
     }
   }
+  await ensureBackend()
   await ensurePreview()
   startNgrok()
 } catch (e) {

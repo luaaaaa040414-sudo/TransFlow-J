@@ -3,7 +3,10 @@
  */
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1'
+// 默认走同源相对路径 /api/v1，由 Vite 的 proxy 转发到本机 8000 端口的 FastAPI。
+// 这样局域网 / 内网穿透访问时，请求打的是「访客看到的那个域名」，不会去连访客自己的 127.0.0.1。
+// 需要指向别的后端时，用 VITE_API_BASE_URL 覆盖（例如 http://192.168.1.10:8000/api/v1）。
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
 const apiInstance = axios.create({
   baseURL: BASE_URL,
